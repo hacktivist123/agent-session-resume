@@ -28,7 +28,7 @@ Compare the result with that scenario's `expected.md`. The goal is not exact wor
 
 ## Scenarios
 
-- `claude-code-jsonl`: full JSONL-style transcript with unfinished docs and unrun integration tests
+- `claude-code-jsonl`: prompt history plus full JSONL-style transcript with unfinished docs and unrun integration tests
 - `codex-compacted-handoff`: compacted handoff with a failing reload persistence test
 - `antigravity-artifacts`: artifact-only handoff with missing mobile verification
 - `opencode-session-export`: session export with leftover cleanup and leak check work

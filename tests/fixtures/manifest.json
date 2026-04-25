@@ -5,6 +5,7 @@
       "id": "claude-code-jsonl-csv-export",
       "platform": "claude-code",
       "source_files": [
+        "claude-code-jsonl/history.jsonl",
         "claude-code-jsonl/transcript.jsonl"
       ],
       "expected": "claude-code-jsonl/expected.md",

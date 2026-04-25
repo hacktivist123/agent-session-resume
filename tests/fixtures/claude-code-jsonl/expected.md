@@ -2,7 +2,7 @@
 
 ## Brief context summary
 
-The prior Claude Code session was adding CSV export support for invoices. The endpoint implementation and focused CSV escaping tests were completed. Work paused before docs and full integration verification.
+The prior Claude Code session was adding CSV export support for invoices in `/workspace/billing-app`. Prompt history confirms the initial request and pause point; the transcript shows the endpoint implementation and focused CSV escaping tests were completed. Work paused before docs and full integration verification.
 
 ## Task status breakdown
 
