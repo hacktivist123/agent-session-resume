@@ -1,0 +1,30 @@
+name: Validate
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Validate package
+        run: python3 scripts/validate-skill-package.py
+
+      - name: Validate fixtures
+        run: python3 scripts/validate-fixtures.py
+
+      - name: Validate trigger matrix
+        run: python3 scripts/validate-trigger-matrix.py
+
+      - name: Compile validator scripts
+        run: python3 -m py_compile scripts/validate-skill-package.py scripts/validate-fixtures.py scripts/validate-trigger-matrix.py

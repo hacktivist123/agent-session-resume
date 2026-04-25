@@ -64,28 +64,7 @@ Restart Codex after installing.
 
 ### Claude Code
 
-Recommended standalone install:
-
-```text
-Install the skill from https://github.com/hacktivist123/agent-session-resume.
-Use the skill folder at skills/agent-session-resume and install it into ~/.claude/skills/agent-session-resume.
-Use the standalone skill install, not the marketplace plugin wrapper.
-```
-
-Claude Code standalone skills live on disk under `~/.claude/skills`. Its repo-based marketplace install flow is for plugins, so use the optional plugin wrapper below if you prefer that install path.
-
-Manual install:
-
-```bash
-tmp_dir="$(mktemp -d)"
-git clone --depth 1 https://github.com/hacktivist123/agent-session-resume "$tmp_dir/agent-session-resume"
-mkdir -p "$HOME/.claude/skills"
-cp -R "$tmp_dir/agent-session-resume/skills/agent-session-resume" "$HOME/.claude/skills/"
-```
-
-Restart Claude Code after installing.
-
-Optional marketplace plugin install:
+Recommended plugin install:
 
 ```text
 /plugin marketplace add hacktivist123/agent-session-resume
@@ -100,7 +79,38 @@ claude plugin marketplace add hacktivist123/agent-session-resume
 claude plugin install agent-session-resume@hacktivist123
 ```
 
-The standalone skill stays canonical and gives you `/agent-session-resume`. The optional plugin points at the same `skills/agent-session-resume` folder for Claude Code marketplace installs, so it is namespaced as `/agent-session-resume:agent-session-resume`.
+After CLI install, restart Claude Code or run `/reload-plugins` in Claude Code.
+
+This installs the skill as a Claude Code plugin command:
+
+```text
+/agent-session-resume:agent-session-resume
+```
+
+The plugin points at the same canonical `skills/agent-session-resume` folder used by the standalone skill package.
+
+Alternative standalone skill install:
+
+```text
+Install the standalone Claude Code skill from https://github.com/hacktivist123/agent-session-resume.
+Copy the repository folder skills/agent-session-resume into ~/.claude/skills/agent-session-resume.
+Do not use the Claude Code plugin marketplace for this standalone flow.
+```
+
+Manual standalone install:
+
+```bash
+tmp_dir="$(mktemp -d)"
+git clone --depth 1 https://github.com/hacktivist123/agent-session-resume "$tmp_dir/agent-session-resume"
+mkdir -p "$HOME/.claude/skills"
+cp -R "$tmp_dir/agent-session-resume/skills/agent-session-resume" "$HOME/.claude/skills/"
+```
+
+Restart Claude Code after installing.
+
+Use the standalone install if you prefer the shorter `/agent-session-resume` command or do not want to use Claude Code plugins.
+
+Choose one Claude Code install path. Installing both the plugin and standalone skill can show duplicate short command suggestions; the namespaced plugin command avoids ambiguity.
 
 ### Other Agents
 
@@ -127,16 +137,16 @@ After that checkpoint, the agent should continue from the first unfinished step 
 
 ## Claude Code Notes
 
-Standalone install gives the shorter skill command:
-
-```text
-/agent-session-resume
-```
-
-Marketplace plugin install gives the namespaced command:
+Recommended plugin install gives the namespaced command:
 
 ```text
 /agent-session-resume:agent-session-resume
+```
+
+Alternative standalone install gives the shorter skill command:
+
+```text
+/agent-session-resume
 ```
 
 If the plugin command does not appear after installation, run `/reload-plugins` and check the marketplace/plugin manifests with:
