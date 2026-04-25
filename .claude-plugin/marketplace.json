@@ -9,8 +9,12 @@
   "plugins": [
     {
       "name": "agent-session-resume",
-      "source": "./plugins/agent-session-resume",
+      "version": "0.1.0",
+      "source": "./",
       "description": "Adds the agent-session-resume skill for reconstructing and continuing prior AI coding-agent sessions.",
+      "author": {
+        "name": "hacktivist123"
+      },
       "repository": "https://github.com/hacktivist123/agent-session-resume",
       "license": "MIT",
       "keywords": [

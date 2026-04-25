@@ -22,12 +22,7 @@ The skill gives an agent a disciplined resume workflow:
 ```text
 .claude-plugin/
   marketplace.json
-plugins/
-  agent-session-resume/
-    .claude-plugin/
-      plugin.json
-    skills/
-      agent-session-resume/
+  plugin.json
 skills/
   agent-session-resume/
     SKILL.md
@@ -105,7 +100,7 @@ claude plugin marketplace add hacktivist123/agent-session-resume
 claude plugin install agent-session-resume@hacktivist123
 ```
 
-The standalone skill stays canonical and gives you `/agent-session-resume`. The plugin wraps the same skill for Claude Code marketplace installs, so it is namespaced as `/agent-session-resume:agent-session-resume`.
+The standalone skill stays canonical and gives you `/agent-session-resume`. The optional plugin points at the same `skills/agent-session-resume` folder for Claude Code marketplace installs, so it is namespaced as `/agent-session-resume:agent-session-resume`.
 
 ### Other Agents
 
@@ -148,7 +143,8 @@ If the plugin command does not appear after installation, run `/reload-plugins` 
 
 ```bash
 claude plugin validate .
-claude plugin validate plugins/agent-session-resume
+claude plugin validate .claude-plugin/plugin.json
+claude plugin validate .claude-plugin/marketplace.json
 ```
 
 ## Checks
@@ -156,15 +152,15 @@ claude plugin validate plugins/agent-session-resume
 Run the package and fixture validators:
 
 ```bash
-python3 scripts/sync-claude-plugin.py
 python3 scripts/validate-skill-package.py
 python3 scripts/validate-fixtures.py
 python3 scripts/validate-trigger-matrix.py
 claude plugin validate .
-claude plugin validate plugins/agent-session-resume
+claude plugin validate .claude-plugin/plugin.json
+claude plugin validate .claude-plugin/marketplace.json
 ```
 
-The standalone skill under `skills/agent-session-resume` is the source of truth. `scripts/sync-claude-plugin.py` refreshes the optional Claude plugin copy before validation. The fixtures in `tests/fixtures/` cover Claude Code, Codex, Antigravity, and OpenCode handoff shapes. Each scenario pairs sample session material with the expected context summary, task status breakdown, and next action. `tests/trigger-matrix.json` tracks prompt coverage for manual or automated trigger testing.
+The standalone skill under `skills/agent-session-resume` is the source of truth. The optional Claude plugin wrapper uses the repo root as its source, so it shares that canonical skill folder instead of maintaining a second copy. The fixtures in `tests/fixtures/` cover Claude Code, Codex, Antigravity, and OpenCode handoff shapes. Each scenario pairs sample session material with the expected context summary, task status breakdown, and next action. `tests/trigger-matrix.json` tracks prompt coverage for manual or automated trigger testing.
 
 ## License
 
