@@ -120,6 +120,8 @@ For agents that do not support skill folders directly, load `skills/agent-sessio
 
 Short prompts should be enough; the skill carries the platform-specific discovery rules.
 
+For more examples, see the [cookbook wiki](https://github.com/hacktivist123/agent-session-resume/wiki/Cookbook).
+
 Continue the most recent Codex session for the current repository:
 
 ```text
