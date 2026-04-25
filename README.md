@@ -45,6 +45,16 @@ Use agent-session-resume to continue the previous session. The prior transcript 
 Read the full transcript first, summarize the goal and task status, then resume from the last unfinished step.
 ```
 
+## Fixture Checks
+
+Run the fixture validator:
+
+```bash
+python3 scripts/validate-fixtures.py
+```
+
+The fixtures in `tests/fixtures/` cover Claude Code, Codex, Antigravity, and OpenCode handoff shapes. Each scenario pairs sample session material with the expected context summary, task status breakdown, and next action.
+
 ## License
 
 MIT

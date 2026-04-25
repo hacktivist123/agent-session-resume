@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "scenarios": [
+    {
+      "id": "claude-code-jsonl-csv-export",
+      "platform": "claude-code",
+      "source_files": [
+        "claude-code-jsonl/transcript.jsonl"
+      ],
+      "expected": "claude-code-jsonl/expected.md",
+      "task_statuses": {
+        "DONE": [
+          "Implement CSV export endpoint",
+          "Add CSV escaping tests"
+        ],
+        "PARTIALLY DONE": [
+          "Update README usage docs"
+        ],
+        "NOT DONE": [
+          "Run full integration test suite"
+        ]
+      }
+    },
+    {
+      "id": "codex-compacted-handoff-dark-mode",
+      "platform": "codex",
+      "source_files": [
+        "codex-compacted-handoff/handoff.md"
+      ],
+      "expected": "codex-compacted-handoff/expected.md",
+      "task_statuses": {
+        "DONE": [
+          "Add settings toggle UI"
+        ],
+        "PARTIALLY DONE": [
+          "Persist dark mode preference"
+        ],
+        "NOT DONE": [
+          "Add regression test for reload behavior"
+        ]
+      }
+    },
+    {
+      "id": "antigravity-artifacts-search-filter",
+      "platform": "antigravity",
+      "source_files": [
+        "antigravity-artifacts/task-list.md",
+        "antigravity-artifacts/walkthrough.md"
+      ],
+      "expected": "antigravity-artifacts/expected.md",
+      "task_statuses": {
+        "DONE": [
+          "Add dashboard search filter",
+          "Verify desktop filtering"
+        ],
+        "PARTIALLY DONE": [
+          "Verify mobile filtering"
+        ],
+        "NOT DONE": [
+          "Add empty-state copy"
+        ]
+      }
+    },
+    {
+      "id": "opencode-session-export-event-listener",
+      "platform": "opencode",
+      "source_files": [
+        "opencode-session-export/session.md"
+      ],
+      "expected": "opencode-session-export/expected.md",
+      "task_statuses": {
+        "DONE": [
+          "Replace polling interval with event listener"
+        ],
+        "PARTIALLY DONE": [
+          "Remove obsolete timer cleanup"
+        ],
+        "NOT DONE": [
+          "Run leak check"
+        ]
+      }
+    }
+  ]
+}

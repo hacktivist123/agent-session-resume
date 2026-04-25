@@ -1,0 +1,7 @@
+{"type":"user","timestamp":"2026-04-24T09:00:00Z","message":"Add a CSV export endpoint for the invoices table. Use the existing export helpers and update docs if there is time."}
+{"type":"assistant","timestamp":"2026-04-24T09:02:00Z","message":"Plan: inspect export helpers, implement endpoint, add CSV escaping coverage, update README, run tests."}
+{"type":"tool_result","timestamp":"2026-04-24T09:06:00Z","command":"rg \"export\" src tests","output":"src/export.ts and tests/export.test.ts are the relevant files."}
+{"type":"assistant","timestamp":"2026-04-24T09:18:00Z","message":"Implemented /api/invoices/export.csv using the existing createCsvResponse helper."}
+{"type":"tool_result","timestamp":"2026-04-24T09:22:00Z","command":"npm test -- tests/export.test.ts","output":"PASS tests/export.test.ts\n  PASS escapes commas, quotes, and newlines\n  PASS returns text/csv response"}
+{"type":"assistant","timestamp":"2026-04-24T09:25:00Z","message":"TODO: README usage section still needs the new endpoint example. I have not run the full integration suite yet."}
+{"type":"user","timestamp":"2026-04-24T09:26:00Z","message":"Pause here. We'll continue later."}
