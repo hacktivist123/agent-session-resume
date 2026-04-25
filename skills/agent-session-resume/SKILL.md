@@ -35,6 +35,7 @@ Resume prior coding-agent work with continuity. The agent must reconstruct what 
 5. Extract tasks.
    - Capture explicit TODOs, checklists, plans, and open questions.
    - Infer implicit tasks from failing tests, unfinished edits, "next step" language, and partially applied changes.
+   - Classify concrete action items separately; do not replace a specific unfinished task with a broad category.
    - Classify each item as:
      - `DONE`: completed and verified, or clearly no longer needed.
      - `PARTIALLY DONE`: started but missing implementation, tests, review, commit, push, or user confirmation.
@@ -78,3 +79,4 @@ Then continue immediately unless blocked.
 - Never reset, revert, or discard existing changes unless the user explicitly asks.
 - Never treat a compact summary as equivalent to the full transcript when a full transcript is available.
 - Never mark a task `DONE` only because it was planned.
+- Never mark a task `PARTIALLY DONE` only because it appeared in a plan; there must be evidence work started.

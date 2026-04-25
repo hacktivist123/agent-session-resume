@@ -11,13 +11,13 @@
       "expected": "claude-code-jsonl/expected.md",
       "task_statuses": {
         "DONE": [
+          "Inspect export helpers",
           "Implement CSV export endpoint",
-          "Add CSV escaping tests"
+          "Run focused export tests"
         ],
-        "PARTIALLY DONE": [
-          "Update README usage docs"
-        ],
+        "PARTIALLY DONE": [],
         "NOT DONE": [
+          "Update README usage docs",
           "Run full integration test suite"
         ]
       }

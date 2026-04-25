@@ -7,8 +7,9 @@ The prior Claude Code session was adding CSV export support for invoices in `/wo
 ## Task status breakdown
 
 - DONE: Implement CSV export endpoint.
-- DONE: Add CSV escaping tests.
-- PARTIALLY DONE: Update README usage docs. The transcript says the README endpoint example still needs to be added.
+- DONE: Inspect export helpers.
+- DONE: Run focused export tests. CSV escaping and `text/csv` response tests passed.
+- NOT DONE: Update README usage docs. The transcript says the README endpoint example still needs to be added.
 - NOT DONE: Run full integration test suite.
 
 ## Clear next action
