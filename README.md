@@ -4,6 +4,8 @@
 
 It is designed for handoffs between tools such as Claude Code, Codex, Antigravity, and OpenCode.
 
+Instead of asking the next agent to guess what happened, the skill makes it produce a handoff checkpoint first: the prior goal, what is already done, what is still open, and the next action to take before editing.
+
 ## What It Does
 
 The skill gives an agent a disciplined resume workflow:
@@ -118,6 +120,37 @@ Use agent-session-resume to continue the previous session. The prior transcript 
 Read the full transcript first, summarize the goal and task status, then resume from the last unfinished step.
 ```
 
+Expected first response shape:
+
+```text
+Brief context summary
+Task status breakdown
+Clear next action
+```
+
+After that checkpoint, the agent should continue from the first unfinished step without redoing completed work.
+
+## Claude Code Notes
+
+Standalone install gives the shorter skill command:
+
+```text
+/agent-session-resume
+```
+
+Marketplace plugin install gives the namespaced command:
+
+```text
+/agent-session-resume:agent-session-resume
+```
+
+If the plugin command does not appear after installation, run `/reload-plugins` and check the marketplace/plugin manifests with:
+
+```bash
+claude plugin validate .
+claude plugin validate plugins/agent-session-resume
+```
+
 ## Checks
 
 Run the package and fixture validators:
@@ -126,11 +159,12 @@ Run the package and fixture validators:
 python3 scripts/sync-claude-plugin.py
 python3 scripts/validate-skill-package.py
 python3 scripts/validate-fixtures.py
+python3 scripts/validate-trigger-matrix.py
 claude plugin validate .
 claude plugin validate plugins/agent-session-resume
 ```
 
-The standalone skill under `skills/agent-session-resume` is the source of truth. `scripts/sync-claude-plugin.py` refreshes the optional Claude plugin copy before validation. The fixtures in `tests/fixtures/` cover Claude Code, Codex, Antigravity, and OpenCode handoff shapes. Each scenario pairs sample session material with the expected context summary, task status breakdown, and next action.
+The standalone skill under `skills/agent-session-resume` is the source of truth. `scripts/sync-claude-plugin.py` refreshes the optional Claude plugin copy before validation. The fixtures in `tests/fixtures/` cover Claude Code, Codex, Antigravity, and OpenCode handoff shapes. Each scenario pairs sample session material with the expected context summary, task status breakdown, and next action. `tests/trigger-matrix.json` tracks prompt coverage for manual or automated trigger testing.
 
 ## License
 

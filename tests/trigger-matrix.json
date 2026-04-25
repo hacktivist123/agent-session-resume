@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "should_trigger": [
+    {
+      "id": "explicit-skill-claude",
+      "category": "explicit-skill",
+      "prompt": "Use agent-session-resume to continue the previous Claude Code session from the .claude directory.",
+      "rationale": "Names the skill and asks to continue a prior Claude Code session."
+    },
+    {
+      "id": "implicit-codex-handoff",
+      "category": "implicit-resume",
+      "prompt": "Pick up from the last Codex run using the handoff summary and do not repeat completed work.",
+      "rationale": "Asks to resume prior agent work without naming the skill."
+    },
+    {
+      "id": "platform-antigravity-artifacts",
+      "category": "platform-specific",
+      "prompt": "Resume the Antigravity task from the saved walkthrough and task artifacts, then continue from the stopping point.",
+      "rationale": "Names a supported platform and artifact-based continuation."
+    },
+    {
+      "id": "platform-opencode-export",
+      "category": "platform-specific",
+      "prompt": "Continue work from this OpenCode session export and tell me what is done versus pending.",
+      "rationale": "Names a supported platform and asks for task status reconstruction."
+    },
+    {
+      "id": "handoff-transcript",
+      "category": "handoff-artifact",
+      "prompt": "I have a transcript from another coding agent; read it fully, reconstruct context, and resume the unfinished step.",
+      "rationale": "Mentions a transcript and the full resume workflow."
+    },
+    {
+      "id": "handoff-chat-log",
+      "category": "handoff-artifact",
+      "prompt": "Here is a prior chat log and changed files; figure out what happened before making new edits.",
+      "rationale": "Uses a chat log as the handoff source and requires context reconstruction."
+    },
+    {
+      "id": "paraphrase-thread",
+      "category": "paraphrase",
+      "prompt": "Can you take over this half-finished agent thread and tell me exactly where it left off?",
+      "rationale": "Paraphrases session resume using takeover and stopping-point language."
+    },
+    {
+      "id": "paraphrase-status",
+      "category": "paraphrase",
+      "prompt": "Before touching the repo, work out which tasks from the previous assistant are done, partial, or not started.",
+      "rationale": "Paraphrases task classification without naming any platform."
+    }
+  ],
+  "should_not_trigger": [
+    {
+      "id": "new-frontend-build",
+      "category": "new-build",
+      "prompt": "Build a new landing page for a scheduling app with a clean hero and pricing section.",
+      "rationale": "Starts a new build rather than continuing prior agent work."
+    },
+    {
+      "id": "python-debug",
+      "category": "general-coding",
+      "prompt": "Explain why this Python function raises a KeyError and suggest a small fix.",
+      "rationale": "General coding help does not imply a prior session handoff."
+    },
+    {
+      "id": "pull-request-review",
+      "category": "review",
+      "prompt": "Review the current pull request for correctness, security issues, and missing tests.",
+      "rationale": "A review request has its own workflow and no resume context."
+    },
+    {
+      "id": "spreadsheet-analysis",
+      "category": "data-work",
+      "prompt": "Create a spreadsheet summary from these CSV exports and chart monthly revenue.",
+      "rationale": "Data transformation work is unrelated to session continuation."
+    },
+    {
+      "id": "weather-question",
+      "category": "general-qa",
+      "prompt": "What is the weather forecast for London tomorrow morning?",
+      "rationale": "General question answering should not load a coding-session resume skill."
+    }
+  ]
+}
