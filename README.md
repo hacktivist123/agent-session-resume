@@ -59,6 +59,16 @@ Restart Codex after installing.
 
 ### Claude Code
 
+Ask Claude Code to install it:
+
+```text
+Install the skill from https://github.com/hacktivist123/agent-session-resume.
+Use the skill folder at skills/agent-session-resume and install it into ~/.claude/skills/agent-session-resume.
+Do not install it as a plugin.
+```
+
+Claude Code standalone skills live on disk under `~/.claude/skills`. Its repo-based marketplace install flow is for plugins, which would namespace this as a plugin skill.
+
 Manual install:
 
 ```bash
