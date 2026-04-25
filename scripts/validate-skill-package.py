@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 import sys
 from pathlib import Path
@@ -13,6 +14,10 @@ SKILL_DIR = ROOT / "skills" / "agent-session-resume"
 SKILL_MD = SKILL_DIR / "SKILL.md"
 OPENAI_YAML = SKILL_DIR / "agents" / "openai.yaml"
 REFERENCES = SKILL_DIR / "references"
+MARKETPLACE_JSON = ROOT / ".claude-plugin" / "marketplace.json"
+CLAUDE_PLUGIN_DIR = ROOT / "plugins" / "agent-session-resume"
+CLAUDE_PLUGIN_MANIFEST = CLAUDE_PLUGIN_DIR / ".claude-plugin" / "plugin.json"
+CLAUDE_PLUGIN_SKILL_DIR = CLAUDE_PLUGIN_DIR / "skills" / "agent-session-resume"
 REQUIRED_REFERENCES = {
     "claude-code.md": "Claude Code",
     "codex.md": "Codex",
@@ -35,6 +40,14 @@ def read_required(path: Path) -> str:
     if not text.strip():
         fail(f"empty file: {path.relative_to(ROOT)}")
     return text
+
+
+def read_json(path: Path) -> object:
+    text = read_required(path)
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError as exc:
+        fail(f"invalid JSON in {path.relative_to(ROOT)}: {exc}")
 
 
 def parse_frontmatter(text: str) -> dict[str, str]:
@@ -100,6 +113,75 @@ def validate_openai_yaml() -> None:
             fail(f"agents/openai.yaml missing {snippet!r}")
 
 
+def require_mapping(value: object, path: Path) -> dict[str, object]:
+    if not isinstance(value, dict):
+        fail(f"{path.relative_to(ROOT)} must contain a JSON object")
+    return value
+
+
+def validate_claude_marketplace() -> None:
+    marketplace = require_mapping(read_json(MARKETPLACE_JSON), MARKETPLACE_JSON)
+    if marketplace.get("name") != "hacktivist123":
+        fail(".claude-plugin/marketplace.json name must be hacktivist123")
+
+    owner = marketplace.get("owner")
+    if not isinstance(owner, dict) or owner.get("name") != "hacktivist123":
+        fail(".claude-plugin/marketplace.json owner.name must be hacktivist123")
+
+    plugins = marketplace.get("plugins")
+    if not isinstance(plugins, list):
+        fail(".claude-plugin/marketplace.json plugins must be a list")
+
+    expected_entry = None
+    for entry in plugins:
+        if isinstance(entry, dict) and entry.get("name") == "agent-session-resume":
+            expected_entry = entry
+            break
+
+    if expected_entry is None:
+        fail(".claude-plugin/marketplace.json must list agent-session-resume")
+    if expected_entry.get("source") != "./plugins/agent-session-resume":
+        fail("agent-session-resume marketplace source must be ./plugins/agent-session-resume")
+    if "description" not in expected_entry:
+        fail("agent-session-resume marketplace entry needs a description")
+
+
+def validate_claude_plugin_manifest() -> None:
+    manifest = require_mapping(read_json(CLAUDE_PLUGIN_MANIFEST), CLAUDE_PLUGIN_MANIFEST)
+    if manifest.get("name") != "agent-session-resume":
+        fail("Claude plugin manifest name must be agent-session-resume")
+    version = manifest.get("version")
+    if not isinstance(version, str) or not re.match(r"^\d+\.\d+\.\d+$", version):
+        fail("Claude plugin manifest version must be semver")
+    for key in ("description", "repository", "license"):
+        if key not in manifest:
+            fail(f"Claude plugin manifest missing {key}")
+
+
+def validate_claude_plugin_skill_copy() -> None:
+    if not CLAUDE_PLUGIN_SKILL_DIR.is_dir():
+        fail(f"missing directory: {CLAUDE_PLUGIN_SKILL_DIR.relative_to(ROOT)}")
+
+    canonical_files = sorted(
+        path.relative_to(SKILL_DIR)
+        for path in SKILL_DIR.rglob("*")
+        if path.is_file()
+    )
+    plugin_files = sorted(
+        path.relative_to(CLAUDE_PLUGIN_SKILL_DIR)
+        for path in CLAUDE_PLUGIN_SKILL_DIR.rglob("*")
+        if path.is_file()
+    )
+    if canonical_files != plugin_files:
+        fail("Claude plugin skill copy must contain the same files as skills/agent-session-resume")
+
+    for relative_path in canonical_files:
+        canonical = (SKILL_DIR / relative_path).read_bytes()
+        plugin = (CLAUDE_PLUGIN_SKILL_DIR / relative_path).read_bytes()
+        if canonical != plugin:
+            fail(f"Claude plugin skill copy is stale: {relative_path}")
+
+
 def main() -> None:
     if not SKILL_DIR.is_dir():
         fail(f"missing directory: {SKILL_DIR.relative_to(ROOT)}")
@@ -107,6 +189,9 @@ def main() -> None:
     validate_skill_md()
     validate_references()
     validate_openai_yaml()
+    validate_claude_marketplace()
+    validate_claude_plugin_manifest()
+    validate_claude_plugin_skill_copy()
 
     print("validated agent-session-resume skill package")
 

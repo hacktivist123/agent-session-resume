@@ -18,6 +18,14 @@ The skill gives an agent a disciplined resume workflow:
 ## Repository Layout
 
 ```text
+.claude-plugin/
+  marketplace.json
+plugins/
+  agent-session-resume/
+    .claude-plugin/
+      plugin.json
+    skills/
+      agent-session-resume/
 skills/
   agent-session-resume/
     SKILL.md
@@ -32,7 +40,7 @@ skills/
 
 ## Install
 
-This repo is distributed as a skill. The installable package is:
+This repo is distributed primarily as a skill. The canonical installable package is:
 
 ```text
 skills/agent-session-resume
@@ -59,15 +67,15 @@ Restart Codex after installing.
 
 ### Claude Code
 
-Ask Claude Code to install it:
+Recommended standalone install:
 
 ```text
 Install the skill from https://github.com/hacktivist123/agent-session-resume.
 Use the skill folder at skills/agent-session-resume and install it into ~/.claude/skills/agent-session-resume.
-Do not install it as a plugin.
+Use the standalone skill install, not the marketplace plugin wrapper.
 ```
 
-Claude Code standalone skills live on disk under `~/.claude/skills`. Its repo-based marketplace install flow is for plugins, which would namespace this as a plugin skill.
+Claude Code standalone skills live on disk under `~/.claude/skills`. Its repo-based marketplace install flow is for plugins, so use the optional plugin wrapper below if you prefer that install path.
 
 Manual install:
 
@@ -79,6 +87,23 @@ cp -R "$tmp_dir/agent-session-resume/skills/agent-session-resume" "$HOME/.claude
 ```
 
 Restart Claude Code after installing.
+
+Optional marketplace plugin install:
+
+```text
+/plugin marketplace add hacktivist123/agent-session-resume
+/plugin install agent-session-resume@hacktivist123
+/reload-plugins
+```
+
+CLI equivalent:
+
+```bash
+claude plugin marketplace add hacktivist123/agent-session-resume
+claude plugin install agent-session-resume@hacktivist123
+```
+
+The standalone skill stays canonical and gives you `/agent-session-resume`. The plugin wraps the same skill for Claude Code marketplace installs, so it is namespaced as `/agent-session-resume:agent-session-resume`.
 
 ### Other Agents
 
@@ -98,11 +123,14 @@ Read the full transcript first, summarize the goal and task status, then resume 
 Run the package and fixture validators:
 
 ```bash
+python3 scripts/sync-claude-plugin.py
 python3 scripts/validate-skill-package.py
 python3 scripts/validate-fixtures.py
+claude plugin validate .
+claude plugin validate plugins/agent-session-resume
 ```
 
-The fixtures in `tests/fixtures/` cover Claude Code, Codex, Antigravity, and OpenCode handoff shapes. Each scenario pairs sample session material with the expected context summary, task status breakdown, and next action.
+The standalone skill under `skills/agent-session-resume` is the source of truth. `scripts/sync-claude-plugin.py` refreshes the optional Claude plugin copy before validation. The fixtures in `tests/fixtures/` cover Claude Code, Codex, Antigravity, and OpenCode handoff shapes. Each scenario pairs sample session material with the expected context summary, task status breakdown, and next action.
 
 ## License
 

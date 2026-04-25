@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agent Session Resume"
+  short_description: "Resume prior AI coding sessions"
+  default_prompt: "Use $agent-session-resume to continue the previous agent session from its transcript or handoff."

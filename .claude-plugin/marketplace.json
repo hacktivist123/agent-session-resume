@@ -1,0 +1,25 @@
+{
+  "name": "hacktivist123",
+  "owner": {
+    "name": "hacktivist123"
+  },
+  "metadata": {
+    "description": "Claude Code plugins from hacktivist123."
+  },
+  "plugins": [
+    {
+      "name": "agent-session-resume",
+      "source": "./plugins/agent-session-resume",
+      "description": "Adds the agent-session-resume skill for reconstructing and continuing prior AI coding-agent sessions.",
+      "repository": "https://github.com/hacktivist123/agent-session-resume",
+      "license": "MIT",
+      "keywords": [
+        "agent-skills",
+        "handoff",
+        "session-resume",
+        "claude-code",
+        "coding-agents"
+      ]
+    }
+  ]
+}

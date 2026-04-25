@@ -5,11 +5,14 @@ These fixtures are small pressure scenarios for `agent-session-resume`.
 Run structural validation:
 
 ```bash
+python3 scripts/sync-claude-plugin.py
 python3 scripts/validate-skill-package.py
 python3 scripts/validate-fixtures.py
+claude plugin validate .
+claude plugin validate plugins/agent-session-resume
 ```
 
-The package validator checks the installable skill shape. The fixture validator checks that every supported platform has a scenario, that each source and expected-output file exists, and that expected outputs include the required resume sections and task classifications.
+The package validator checks the installable skill shape, the optional Claude plugin wrapper, and that the plugin copy matches the canonical standalone skill. The fixture validator checks that every supported platform has a scenario, that each source and expected-output file exists, and that expected outputs include the required resume sections and task classifications.
 
 ## Manual Skill Pressure Test
 
