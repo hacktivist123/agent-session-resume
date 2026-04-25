@@ -32,9 +32,47 @@ skills/
 
 ## Install
 
-Copy `skills/agent-session-resume` into the skill directory used by your agent runtime.
+This repo is distributed as a skill. The installable package is:
 
-For agents that do not support skill folders directly, use `SKILL.md` as the main instruction document and load the relevant platform file from `references/`.
+```text
+skills/agent-session-resume
+```
+
+### Codex
+
+Ask Codex to install it:
+
+```text
+Install the skill from hacktivist123/agent-session-resume at skills/agent-session-resume
+```
+
+Manual install:
+
+```bash
+tmp_dir="$(mktemp -d)"
+git clone --depth 1 https://github.com/hacktivist123/agent-session-resume "$tmp_dir/agent-session-resume"
+mkdir -p "${CODEX_HOME:-$HOME/.codex}/skills"
+cp -R "$tmp_dir/agent-session-resume/skills/agent-session-resume" "${CODEX_HOME:-$HOME/.codex}/skills/"
+```
+
+Restart Codex after installing.
+
+### Claude Code
+
+Manual install:
+
+```bash
+tmp_dir="$(mktemp -d)"
+git clone --depth 1 https://github.com/hacktivist123/agent-session-resume "$tmp_dir/agent-session-resume"
+mkdir -p "$HOME/.claude/skills"
+cp -R "$tmp_dir/agent-session-resume/skills/agent-session-resume" "$HOME/.claude/skills/"
+```
+
+Restart Claude Code after installing.
+
+### Other Agents
+
+For agents that do not support skill folders directly, load `skills/agent-session-resume/SKILL.md` as the main instruction document and use the relevant platform file from `skills/agent-session-resume/references/`.
 
 ## Usage
 
@@ -45,11 +83,12 @@ Use agent-session-resume to continue the previous session. The prior transcript 
 Read the full transcript first, summarize the goal and task status, then resume from the last unfinished step.
 ```
 
-## Fixture Checks
+## Checks
 
-Run the fixture validator:
+Run the package and fixture validators:
 
 ```bash
+python3 scripts/validate-skill-package.py
 python3 scripts/validate-fixtures.py
 ```
 
