@@ -14,6 +14,12 @@
       "rationale": "Asks to resume prior agent work without naming the skill."
     },
     {
+      "id": "platform-codex-latest-repo",
+      "category": "platform-specific",
+      "prompt": "Continue the most recent Codex session for this repository.",
+      "rationale": "Names Codex and asks to resume the latest repo-relevant session."
+    },
+    {
       "id": "platform-antigravity-artifacts",
       "category": "platform-specific",
       "prompt": "Resume the Antigravity task from the saved walkthrough and task artifacts, then continue from the stopping point.",

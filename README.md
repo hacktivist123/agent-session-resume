@@ -118,11 +118,22 @@ For agents that do not support skill folders directly, load `skills/agent-sessio
 
 ## Usage
 
-Example prompt:
+Short prompts should be enough; the skill carries the platform-specific discovery rules.
+
+Continue the most recent Codex session for the current repository:
 
 ```text
-Use agent-session-resume to continue the previous session. The prior transcript is in .claude/.
-Read the full transcript first, summarize the goal and task status, then resume from the last unfinished step.
+/agent-session-resume:agent-session-resume
+
+Continue the most recent Codex session for this repository.
+```
+
+Continue from a specific handoff file:
+
+```text
+/agent-session-resume:agent-session-resume
+
+Continue from ./handoff.md.
 ```
 
 Expected first response shape:
