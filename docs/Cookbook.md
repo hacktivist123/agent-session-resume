@@ -174,6 +174,12 @@ The main pattern is:
 3. Use a short resume prompt.
 4. Require the checkpoint before edits.
 
+Before switching agents, ask the current agent for a compact handoff instead of pasting a full transcript:
+
+```text
+Create a compact handoff for the next coding agent. Include only the goal, completed work, in-progress work, not-done work, changed files, commands run, verification, exact stopping point, and next action. Redact secrets and customer data.
+```
+
 ### Claude Code Continuing Codex
 
 ```bash
@@ -231,6 +237,66 @@ When leaving one agent and moving to another, ask the first agent to create:
 ## Next Action
 ```
 
+Keep the headings stable so another agent or validator can check the handoff shape. The repo includes a lightweight validator for this template:
+
+```bash
+python3 scripts/validate-handoff.py path/to/handoff.md
+```
+
+### Redaction Rules
+
+Cross-agent handoffs should carry task evidence, not private data. Before sharing a handoff or turning it into a fixture:
+
+- Replace API keys, tokens, passwords, cookies, and bearer values with `<redacted>`.
+- Replace customer names, emails, IDs, and private URLs with placeholders unless they are essential to the bug.
+- Summarize large logs instead of pasting full output.
+- For Claude Code sidecars or Codex tool outputs, include the command, result, and relevant error lines rather than raw files.
+- Add a short redaction note when sensitive values were removed.
+
+### Minimal Handoff Example
+
+```text
+# Handoff
+
+## Goal
+
+Finish checkout retry handling.
+
+## Completed
+
+- Added retry helper in `src/checkout/retry.ts`.
+- Focused retry tests pass.
+
+## In Progress
+
+- Webhook replay path still needs inspection.
+
+## Not Done
+
+- Full checkout integration suite has not been run.
+
+## Files Changed
+
+- `src/checkout/retry.ts`
+- `tests/checkout-retry.test.ts`
+
+## Commands Run
+
+- `npm test -- tests/checkout-retry.test.ts` passed.
+
+## Verification
+
+- Focused tests passed; integration coverage is still missing.
+
+## Exact Stopping Point
+
+Stopped before checking whether webhook replay should reuse the retry helper.
+
+## Next Action
+
+Inspect webhook replay, reuse the helper if needed, then run the full checkout integration suite.
+```
+
 ## Common Pitfalls
 
 - Do not resume from a summary when a full transcript is available.
@@ -238,4 +304,3 @@ When leaving one agent and moving to another, ask the first agent to create:
 - Do not mark planned work as `DONE`.
 - Do not edit before the checkpoint.
 - Do not reinstall both Claude plugin and standalone Claude skill unless you intentionally want duplicate command suggestions.
-
