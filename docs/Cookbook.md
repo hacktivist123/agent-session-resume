@@ -205,6 +205,37 @@ Use agent-session-resume.
 Continue from ./handoff.md.
 ```
 
+## Helper Scripts
+
+The repo includes small local helpers for discovery and digesting. They are optional: use them when a transcript store is noisy or a source file is too large to read directly.
+
+### Find Candidate Sessions
+
+Use `session-candidates.py` to shortlist likely transcripts before opening transcript bodies.
+
+```bash
+python3 scripts/session-candidates.py --platform codex --cwd "$PWD" --format tsv
+python3 scripts/session-candidates.py --platform claude-code --cwd "$PWD" --format tsv
+```
+
+For Codex, the helper reads `session_index.jsonl` first and resolves candidate IDs to transcript files. For Claude Code, it derives the likely `~/.claude/projects/<project>` directory from the current cwd before falling back to broader project scans.
+
+Use `--topic` when the user gave a title or theme:
+
+```bash
+python3 scripts/session-candidates.py --platform codex --cwd "$PWD" --topic "checkout retry"
+```
+
+### Create A Compact Evidence Digest
+
+Use `session-digest.py` to produce a bounded orientation digest from transcript, export, handoff, or artifact files:
+
+```bash
+python3 scripts/session-digest.py path/to/session.jsonl path/to/handoff.md
+```
+
+The digest is an orientation aid, not a replacement for evidence review. After digesting, still inspect the relevant transcript slices, tool outputs, changed files, git state, and verification results before continuing work.
+
 ## Good Handoff File Template
 
 When leaving one agent and moving to another, ask the first agent to create:
@@ -238,4 +269,3 @@ When leaving one agent and moving to another, ask the first agent to create:
 - Do not mark planned work as `DONE`.
 - Do not edit before the checkpoint.
 - Do not reinstall both Claude plugin and standalone Claude skill unless you intentionally want duplicate command suggestions.
-
