@@ -25,7 +25,18 @@ Common locations:
 - `${CODEX_HOME:-$HOME/.codex}/sessions/YYYY/MM/DD/*.jsonl` - active or recent session transcripts.
 - `${CODEX_HOME:-$HOME/.codex}/archived_sessions/*.jsonl` - archived transcripts.
 
-When choosing a session, prefer the most recent transcript whose cwd, workdir, repo path, thread name, or mentioned files match the current repository. Do not pick the newest global Codex session if it appears to belong to a different project.
+## Candidate Ranking
+
+When multiple Codex transcripts could match, rank candidates by the strongest matching signal. Do not let several weaker signals outrank a stronger one:
+
+1. Explicit path or session ID supplied by the user.
+2. Exact `cwd`, `workdir`, or repo path match with the current repository.
+3. Parent/child cwd match, where the transcript cwd contains the repo or is inside it.
+4. Thread name, title, or session name match.
+5. Mentioned files, package names, repository names, or branch names from the current work.
+6. Recency, used only as a tie-breaker among otherwise equal candidates.
+
+If candidates are still tied after recency, choose the stable lexical order of transcript path or session ID and mention the ambiguity in the context summary. Do not pick the newest global Codex session if it appears to belong to a different project.
 
 Use `git status --short --branch` early to understand what already changed. If the active folder is not a git repository, locate the relevant repo from the transcript or user-provided path.
 
