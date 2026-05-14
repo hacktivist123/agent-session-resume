@@ -29,6 +29,29 @@ When choosing a session, prefer the most recent transcript whose cwd, workdir, r
 
 Use `git status --short --branch` early to understand what already changed. If the active folder is not a git repository, locate the relevant repo from the transcript or user-provided path.
 
+## Safe Reading
+
+Codex session files can contain raw metadata and very large tool results. Do not load or paste entire `session_meta` records, full session indexes, or giant tool outputs when only routing fields or a small evidence slice is needed.
+
+Before reading a candidate transcript, check its size and line count:
+
+```bash
+wc -lc "$session_file"
+```
+
+Project metadata with `jq` instead of dumping raw JSONL:
+
+```bash
+jq -c 'select(.type == "session_meta") | {id: .payload.id, timestamp: .payload.timestamp, cwd: .payload.cwd, originator: .payload.originator, cli_version: .payload.cli_version}' "$session_file"
+```
+
+For large tool outputs, first identify the relevant event, command, file, or error text. Then slice by line range or search for matching terms instead of loading the whole output:
+
+```bash
+rg -n "error|failed|TODO|src/theme/useThemePreference" "$session_file"
+sed -n '120,220p' "$session_file"
+```
+
 ## Reading
 
 Read the current conversation summary, local handoff files, and changed files referenced by the prior session. When a full transcript is unavailable, explicitly distinguish:
