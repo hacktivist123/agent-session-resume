@@ -22,8 +22,10 @@ Resume prior coding-agent work with continuity. The agent must reconstruct what 
    - Prefer explicit user-provided paths over discovered paths.
 
 3. Read the full available session record before taking action.
-   - For large transcripts, read in chunks until the complete record has been reviewed.
+   - For large transcripts, first build an inventory of files, event types, timestamps, sidecars, and candidate evidence; then read the evidence-bearing slices until the complete record has been accounted for.
    - Include user messages, assistant messages, tool calls, tool outputs, summaries, plans, and artifacts that explain decisions.
+   - Full coverage means no relevant evidence was skipped. It does not require pasting giant transcript records, raw metadata, or entire tool-output files into context when a bounded search or slice captures the evidence.
+   - If a large output is summarized instead of fully loaded, say so in the resume report and identify the file/event searched.
    - Do not edit files, run fix commands, or repeat prior work before this pass is complete.
 
 4. Reconstruct context.

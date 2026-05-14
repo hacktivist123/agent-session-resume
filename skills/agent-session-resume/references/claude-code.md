@@ -45,6 +45,39 @@ Do not stop at the first TODO list. Continue through the end of the transcript s
 
 When using `history.jsonl`, read it near the relevant timestamp or project path to recover user intent, but classify task status from the full transcript and current workspace whenever possible.
 
+Claude Code may persist oversized tool results outside the JSONL transcript. If a tool result contains a placeholder such as `<persisted-output>` or says the full output was saved to `tool-results/<id>.txt`, treat that sidecar as part of the session record.
+
+Inspect sidecars safely:
+
+```bash
+wc -lc path/to/tool-results/<id>.txt
+rg -n "error|failed|TODO|not done|next|<file-or-symbol-pattern>" path/to/tool-results/<id>.txt
+sed -n '120,180p' path/to/tool-results/<id>.txt
+```
+
+Do not read a large sidecar from beginning to end unless it is small enough for the active context. Search for the command, error text, file path, task label, or final summary that explains the resume state. In the resume report, state that the evidence came from a sidecar file when it did.
+
+For large transcript or tool-output files, use an evidence inventory before deep reading:
+
+1. Count lines and bytes.
+2. List JSONL event types or artifact names.
+3. Identify user prompts, assistant summaries, tool calls, tool failures, and persisted-output pointers.
+4. Search/slice the relevant evidence.
+5. Continue to the final transcript event so late corrections or appended turns are not missed.
+
+If the transcript may still be active or was modified during resume, recheck the tail before reporting:
+
+```bash
+tail -n 20 "$session"
+```
+
+The exact stopping point should come from the final meaningful events, not from the first TODO list. Capture:
+
+- the last user prompt or instruction
+- the last assistant response after that prompt
+- any final tool call or tool result that explains a blocker
+- whether the last state is a completed report, an unanswered question, a failed command, or a pending next step
+
 ## Resume Notes
 
 - Prefer `.claude/` inside the current project over global Claude history.
