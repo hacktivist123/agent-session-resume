@@ -80,6 +80,115 @@
           "Run leak check"
         ]
       }
+    },
+    {
+      "id": "codex-noisy-jsonl-checkout-retry",
+      "platform": "codex",
+      "source_files": [
+        "codex-noisy-jsonl/transcript.jsonl"
+      ],
+      "expected": "codex-noisy-jsonl/expected.md",
+      "source_cues": [
+        "\"type\":\"token_count\"",
+        "\"type\":\"reasoning\"",
+        "\"type\":\"function_call\""
+      ],
+      "expected_cues": [
+        "token-count telemetry",
+        "tool call"
+      ],
+      "task_statuses": {
+        "DONE": [
+          "Add retry banner UI",
+          "Run focused retry tests"
+        ],
+        "PARTIALLY DONE": [],
+        "NOT DONE": [
+          "Run full checkout suite"
+        ]
+      }
+    },
+    {
+      "id": "codex-wrong-newest-checkout-retry",
+      "platform": "codex",
+      "source_files": [
+        "codex-wrong-newest/session_index.jsonl",
+        "codex-wrong-newest/newer-unrelated.jsonl",
+        "codex-wrong-newest/older-matching.jsonl"
+      ],
+      "expected": "codex-wrong-newest/expected.md",
+      "source_cues": [
+        "newer-unrelated",
+        "\"cwd\":\"/workspace/profile\"",
+        "\"cwd\":\"/workspace/shop\""
+      ],
+      "expected_cues": [
+        "newest indexed Codex session belongs to `/workspace/profile`",
+        "Choose `older-matching.jsonl`"
+      ],
+      "task_statuses": {
+        "DONE": [
+          "Add checkout retry banner"
+        ],
+        "PARTIALLY DONE": [],
+        "NOT DONE": [
+          "Run full checkout suite"
+        ]
+      }
+    },
+    {
+      "id": "claude-noisy-jsonl-checkout-retry",
+      "platform": "claude-code",
+      "source_files": [
+        "claude-noisy-jsonl/transcript.jsonl",
+        "claude-noisy-jsonl/tool-results/checkout.txt"
+      ],
+      "expected": "claude-noisy-jsonl/expected.md",
+      "source_cues": [
+        "\"type\":\"ai-title\"",
+        "<persisted-output>",
+        "tool-results/checkout.txt"
+      ],
+      "expected_cues": [
+        "duplicate title events",
+        "persisted-output sidecar"
+      ],
+      "task_statuses": {
+        "DONE": [
+          "Run focused checkout retry tests"
+        ],
+        "PARTIALLY DONE": [],
+        "NOT DONE": [
+          "Run full integration suite"
+        ]
+      }
+    },
+    {
+      "id": "large-transcript-payment-retry",
+      "platform": "codex",
+      "source_files": [
+        "large-transcript/handoff.md"
+      ],
+      "expected": "large-transcript/expected.md",
+      "source_cues": [
+        "transcript size: 2.4 MB",
+        "FAIL tests/payment-retry.test.ts"
+      ],
+      "expected_cues": [
+        "inventoried and searched",
+        "FAIL tests/payment-retry.test.ts"
+      ],
+      "task_statuses": {
+        "DONE": [
+          "Add payment retry helper"
+        ],
+        "PARTIALLY DONE": [
+          "Wire retry helper into checkout flow"
+        ],
+        "NOT DONE": [
+          "Fix failing payment retry test"
+        ]
+      }
     }
   ]
 }
