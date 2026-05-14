@@ -21,6 +21,32 @@ find . -maxdepth 5 -type f \( \
 
 Also inspect any Antigravity-specific workspace folder if present, but do not rely on undocumented private storage as the only source.
 
+## Artifact Ordering
+
+When no full transcript is available, build an artifact inventory before reading deeply:
+
+```bash
+find . -maxdepth 5 -type f \( \
+  -iname '*artifact*' -o \
+  -iname '*walkthrough*' -o \
+  -iname '*plan*' -o \
+  -iname '*task*' -o \
+  -iname '*transcript*' -o \
+  -iname '*summary*' \
+\) -print0 2>/dev/null | xargs -0 ls -lt 2>/dev/null
+```
+
+Prefer the strongest source for the question being resumed:
+
+1. Explicit user-provided export, transcript, or artifact path.
+2. Full transcript or conversation export.
+3. Task list or implementation plan with timestamps.
+4. Walkthrough, screenshot, browser recording, or verification artifact.
+5. Generated summary or status note.
+6. File modification times, used only as a tie-breaker.
+
+If artifacts disagree, prefer the latest artifact that includes concrete verification evidence, then validate against current repository files and git state.
+
 ## Reading
 
 Read artifacts in chronological order when possible. Prioritize files that explain:
@@ -30,6 +56,8 @@ Read artifacts in chronological order when possible. Prioritize files that expla
 - completed implementation steps
 - verification evidence
 - review comments or follow-up instructions
+
+For screenshots and recordings, extract only the resume-relevant facts: visible state, tested flow, errors, and what the prior agent claimed was verified. Do not treat a visual artifact as proof that code is complete until the repository state confirms it.
 
 If only artifacts are available, state that no full transcript was found and reconstruct task status from the artifacts plus current repository state.
 
