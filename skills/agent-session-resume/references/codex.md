@@ -37,6 +37,17 @@ Read the current conversation summary, local handoff files, and changed files re
 - facts verified from files
 - inferences from current repository state
 
+For large Codex JSONL transcripts, start with a message-only skim to orient yourself before deeper review:
+
+```bash
+jq -c '
+  select(.payload.type == "user_message" or .payload.type == "agent_message")
+  | {timestamp, type: .payload.type, message: .payload.message}
+' path/to/session.jsonl
+```
+
+This intentionally keeps only user and agent messages with timestamps, skipping session metadata, tool calls, tool output, and other large event payloads. Use it as an orientation step, not as a replacement for evidence review: still inspect relevant tool outputs, changed files, git state, tests, and artifacts before continuing work.
+
 ## Resume Notes
 
 - If the user says the prior session was from Claude Code and Codex is only the current runtime, use the Claude Code adapter for transcript discovery.
