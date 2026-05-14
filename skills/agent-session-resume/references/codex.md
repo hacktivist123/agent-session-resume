@@ -25,6 +25,13 @@ Common locations:
 - `${CODEX_HOME:-$HOME/.codex}/sessions/YYYY/MM/DD/*.jsonl` - active or recent session transcripts.
 - `${CODEX_HOME:-$HOME/.codex}/archived_sessions/*.jsonl` - archived transcripts.
 
+Before reading a transcript body, confirm that its `session_meta` `cwd` matches the current repository. Project only the field you need instead of dumping the raw first line, because Codex `session_meta` can include large base instructions and tool metadata:
+
+```bash
+session="<candidate transcript>"
+sed -n '1p' "$session" | jq -r '.payload.cwd // empty'
+```
+
 When choosing a session, prefer the most recent transcript whose cwd, workdir, repo path, thread name, or mentioned files match the current repository. Do not pick the newest global Codex session if it appears to belong to a different project.
 
 Use `git status --short --branch` early to understand what already changed. If the active folder is not a git repository, locate the relevant repo from the transcript or user-provided path.
