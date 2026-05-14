@@ -31,6 +31,7 @@ Resume prior coding-agent work with continuity. The agent must reconstruct what 
    - List important decisions, constraints, style choices, and user preferences.
    - Identify completed work, changed files, commands run, tests run, and verification results.
    - Identify the exact stopping point, including the last command, edit, failure, or pending instruction.
+   - Attach evidence references to claims about work state. Prefer `path/to/file.ext:L10-L20` for files, transcript line numbers for session records, command names plus transcript/tool-output lines for verification, and explicit "not found" or "not checked yet" notes when evidence is missing.
 
 5. Extract tasks.
    - Capture explicit TODOs, checklists, plans, and open questions.
@@ -42,10 +43,11 @@ Resume prior coding-agent work with continuity. The agent must reconstruct what 
      - `NOT DONE`: not started or only discussed.
 
 6. Validate against the workspace.
-   - Inspect git status before editing.
+   - Inspect git status before editing and mention the result in the checkpoint.
    - Read files touched or discussed in the prior session.
    - Preserve unrelated user changes.
-   - If transcript claims conflict with the current files, trust current files for implementation state and note the discrepancy.
+   - If the worktree is dirty before you start, identify likely pre-existing changes, keep them out of unrelated commits, and do not overwrite, reset, revert, or stage them unless the user explicitly asks. If checkout, merge, or branch work would collide with dirty files, use a separate worktree or ask before proceeding.
+   - If transcript claims conflict with the current files, trust current files for implementation state and report the discrepancy in the mismatch format below.
 
 7. Continue from the first unfinished step.
    - Do not repeat completed work.
@@ -64,13 +66,38 @@ Resume prior coding-agent work with continuity. The agent must reconstruct what 
 
 Before continuing execution, report:
 
-```text
-Brief context summary
-Task status breakdown
-Clear next action
+```markdown
+## Brief context summary
+
+- Goal: <prior session goal>
+- Source reviewed: <transcript/export/artifact refs>
+- Current workspace check: <git status summary and touched-file refs, or why not checked>
+- Transcript/current repo mismatches: none found
+  - Or: <claim> - transcript: <ref>; current repo: <ref>; action: <trust current repo / ask / inspect next>
+- Stopping point: <last command, edit, failure, or user pause instruction with evidence>
+
+## Task status breakdown
+
+- DONE: <specific completed task> - evidence: <implementation refs>; verification: <test/tool refs or "not recorded">.
+- PARTIALLY DONE: <specific started task> - evidence: <started-work refs>; missing: <remaining gap refs>.
+- NOT DONE: <specific unstarted task> - evidence: <TODO, failing test, absent artifact, or transcript gap refs>.
+
+## Clear next action
+
+- Next: <first unfinished step to take now>
+- Blocked: <no | yes - reason and evidence>
 ```
 
 Then continue immediately unless blocked.
+
+## Evidence Rules
+
+- Every task status line must include `evidence:` with at least one concrete source reference.
+- `DONE` requires evidence of completion, not just a plan or intention.
+- `PARTIALLY DONE` requires evidence that work started plus the missing completion or verification.
+- `NOT DONE` requires evidence from an explicit TODO, failing command, missing artifact, or transcript gap.
+- If current-repo verification has not happened yet, say so plainly instead of implying the transcript is current.
+- Use compact, stable references so a person or script can trace the claim: `session.jsonl:L4`, `handoff.md:L7-L10`, `src/file.ts:L20-L35`, or `git status --short --branch`.
 
 ## Guardrails
 
@@ -80,3 +107,4 @@ Then continue immediately unless blocked.
 - Never treat a compact summary as equivalent to the full transcript when a full transcript is available.
 - Never mark a task `DONE` only because it was planned.
 - Never mark a task `PARTIALLY DONE` only because it appeared in a plan; there must be evidence work started.
+- Never omit transcript/current-repo mismatches when the transcript and checked files disagree.

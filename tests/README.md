@@ -13,7 +13,7 @@ claude plugin validate .claude-plugin/plugin.json
 claude plugin validate .claude-plugin/marketplace.json
 ```
 
-The package validator checks the installable skill shape and the optional Claude plugin wrapper that points at the same canonical skill folder. The fixture validator checks that every supported platform has a scenario, that each source and expected-output file exists, and that expected outputs include the required resume sections and task classifications. The trigger matrix validator checks prompt coverage for should-trigger and should-not-trigger cases.
+The package validator checks the installable skill shape and the optional Claude plugin wrapper that points at the same canonical skill folder. The fixture validator checks that every supported platform has a scenario, that each source and expected-output file exists, and that expected outputs include the required resume sections, task classifications, and fixture evidence references. The trigger matrix validator checks prompt coverage for should-trigger and should-not-trigger cases.
 
 ## Manual Skill Pressure Test
 
@@ -29,6 +29,7 @@ Compare the result with that scenario's `expected.md`. The goal is not exact wor
 - it does not repeat completed work
 - it identifies the true stopping point
 - it preserves the expected task classifications
+- it cites concrete evidence for each task status
 - it proposes the same next action class
 
 ## Manual Trigger Test
