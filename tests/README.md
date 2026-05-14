@@ -13,7 +13,7 @@ claude plugin validate .claude-plugin/plugin.json
 claude plugin validate .claude-plugin/marketplace.json
 ```
 
-The package validator checks the installable skill shape and the optional Claude plugin wrapper that points at the same canonical skill folder. The fixture validator checks that every supported platform has a scenario, that each source and expected-output file exists, and that expected outputs include the required resume sections and task classifications. The trigger matrix validator checks prompt coverage for should-trigger and should-not-trigger cases.
+The package validator checks the installable skill shape and the optional Claude plugin wrapper that points at the same canonical skill folder. The fixture validator checks that every supported platform has a scenario, that each source and expected-output file exists, that expected outputs include the required resume sections and task classifications, and that optional source/expected cues are present. The trigger matrix validator checks prompt coverage for should-trigger and should-not-trigger cases.
 
 ## Manual Skill Pressure Test
 
@@ -46,3 +46,7 @@ The validator checks matrix structure and coverage. It does not prove model beha
 - `codex-compacted-handoff`: compacted handoff with a failing reload persistence test
 - `antigravity-artifacts`: artifact-only handoff with missing mobile verification
 - `opencode-session-export`: session export with leftover cleanup and leak check work
+- `codex-noisy-jsonl`: noisy Codex JSONL with telemetry, reasoning, tool calls, and bounded resume evidence
+- `codex-wrong-newest`: candidate-selection pressure case where a newer unrelated session must lose to the cwd match
+- `claude-noisy-jsonl`: Claude JSONL with duplicate titles, queue metadata, and a persisted-output sidecar
+- `large-transcript`: large-transcript pressure case that should be inventoried and searched before deep reading

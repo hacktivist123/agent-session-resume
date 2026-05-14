@@ -60,10 +60,11 @@ def validate_scenario(scenario: dict, seen_ids: set[str]) -> str:
     source_files = scenario.get("source_files")
     if not isinstance(source_files, list) or not source_files:
         fail(f"{scenario_id}: source_files must be a non-empty list")
+    source_text = ""
     for source_file in source_files:
         if not isinstance(source_file, str) or not source_file:
             fail(f"{scenario_id}: invalid source file entry")
-        read_fixture(FIXTURES / source_file)
+        source_text += "\n" + read_fixture(FIXTURES / source_file)
 
     expected_path_value = scenario.get("expected")
     if not isinstance(expected_path_value, str) or not expected_path_value:
@@ -73,6 +74,16 @@ def validate_scenario(scenario: dict, seen_ids: set[str]) -> str:
     for section in REQUIRED_EXPECTED_SECTIONS:
         if section not in expected_text:
             fail(f"{scenario_id}: expected output missing section {section!r}")
+
+    for cue_name, haystack in (("source_cues", source_text), ("expected_cues", expected_text)):
+        cues = scenario.get(cue_name, [])
+        if not isinstance(cues, list):
+            fail(f"{scenario_id}: {cue_name} must be a list when present")
+        for cue in cues:
+            if not isinstance(cue, str) or not cue:
+                fail(f"{scenario_id}: invalid {cue_name} entry")
+            if cue not in haystack:
+                fail(f"{scenario_id}: cue {cue!r} missing from {cue_name.removesuffix('_cues')}")
 
     task_statuses = scenario.get("task_statuses")
     if not isinstance(task_statuses, dict):
