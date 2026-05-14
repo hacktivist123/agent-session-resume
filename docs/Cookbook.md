@@ -16,6 +16,26 @@ Clear next action
 
 Only after that checkpoint should the agent continue implementation.
 
+## Resume Modes
+
+Use report-only mode when the user asks for status, the latest stopping point, or a done/partial/not-done breakdown:
+
+```text
+Use agent-session-resume.
+
+Check the last conversation in this folder and tell me where it left off.
+```
+
+Use continue-edit mode when the user asks the agent to act after the checkpoint:
+
+```text
+Use agent-session-resume.
+
+Continue the previous session and finish the first unfinished task.
+```
+
+Use quick resume for a compact status report. Use deep resume when the agent will edit files, when the transcript source is ambiguous, or when the current repo may have drifted since the prior session.
+
 ## Claude Code
 
 Recommended install is the Claude Code plugin:
@@ -238,4 +258,3 @@ When leaving one agent and moving to another, ask the first agent to create:
 - Do not mark planned work as `DONE`.
 - Do not edit before the checkpoint.
 - Do not reinstall both Claude plugin and standalone Claude skill unless you intentionally want duplicate command suggestions.
-

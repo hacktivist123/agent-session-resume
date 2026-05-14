@@ -53,6 +53,15 @@ Resume prior coding-agent work with continuity. The agent must reconstruct what 
    - If context is missing, inspect related files and logs.
    - Ask the user only when progress is blocked by missing information or an unsafe choice.
 
+## Resume Modes
+
+Use the user's prompt to decide how far to go after the checkpoint:
+
+- `Report-only`: If the user asks what happened, where the prior session left off, what is done versus pending, or asks to check a previous session without asking for edits, stop after the required resume report and clear next action.
+- `Continue-edit`: If the user asks to continue, resume, fix, implement, open a PR, run tests, or otherwise act on the unfinished work, provide the required resume report first, then continue from the first unfinished safe step.
+- `Quick resume`: Use when the user asks for a status report, latest stopping point, or task breakdown. Prefer a compact source inventory, task classification, and next action.
+- `Deep resume`: Use when the user asks to continue implementation, when the source is ambiguous, or when current files may have drifted. Read the full available record, inspect current git state and relevant files, then continue.
+
 ## Platform References
 
 - Claude Code: read `references/claude-code.md`.
