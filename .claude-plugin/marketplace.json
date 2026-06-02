@@ -9,7 +9,7 @@
   "plugins": [
     {
       "name": "agent-session-resume",
-      "version": "0.1.1",
+      "version": "1.0.0",
       "source": "./",
       "description": "Adds the agent-session-resume skill for reconstructing and continuing prior AI coding-agent sessions.",
       "author": {
