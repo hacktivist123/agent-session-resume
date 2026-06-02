@@ -34,6 +34,8 @@ Resume prior coding-agent work with continuity. The agent must reconstruct what 
    - Identify completed work, changed files, commands run, tests run, and verification results.
    - Identify the exact stopping point, including the last command, edit, failure, or pending instruction.
    - Attach evidence references to claims about work state. Prefer `path/to/file.ext:L10-L20` for files, transcript line numbers for session records, command names plus transcript/tool-output lines for verification, and explicit "not found" or "not checked yet" notes when evidence is missing.
+   - Treat prior resume reports, summaries, and handoffs as orientation aids and claims, not primary evidence. Re-verify their task status claims against transcript events, repo files, git status, GitHub state, command output, fixtures, or other primary sources before relying on them.
+   - If a prior-report claim cannot be checked against a primary source, label it as unverified instead of presenting it as fact.
 
 5. Extract tasks.
    - Capture explicit TODOs, checklists, plans, and open questions.
@@ -109,6 +111,13 @@ Then continue immediately unless blocked.
 - `NOT DONE` requires evidence from an explicit TODO, failing command, missing artifact, or transcript gap.
 - If current-repo verification has not happened yet, say so plainly instead of implying the transcript is current.
 - Use compact, stable references so a person or script can trace the claim: `session.jsonl:L4`, `handoff.md:L7-L10`, `src/file.ts:L20-L35`, or `git status --short --branch`.
+- Prior resume reports can help route the investigation, but they do not prove task state by themselves. Cite the primary evidence that verifies the claim, or mark the claim unverified when primary evidence is unavailable.
+
+## Static Idempotency Contract
+
+- For static sources, repeated resumes over the same unchanged transcript, artifacts, and workspace should converge on the same task status breakdown and next-action class.
+- Exact wording may vary, but evidence references, task classifications, mismatch handling, and whether the next action is blocked or actionable should remain stable.
+- Static idempotency does not apply to live or active transcripts, changing repositories, remote GitHub state, running commands, or other sources that may drift between runs.
 
 ## Guardrails
 

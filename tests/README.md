@@ -36,7 +36,10 @@ Compare the result with that scenario's `expected.md`. The goal is not exact wor
 - it identifies the true stopping point
 - it preserves the expected task classifications
 - it cites concrete evidence for each task status
+- it treats prior resume reports and handoff summaries as claims until verified by primary evidence
 - it proposes the same next action class
+
+For static fixtures and saved transcripts, rerunning the same unchanged source should converge on the same task status breakdown and next-action class. Wording may vary, but classifications, evidence anchors, and blocked/actionable state should remain stable. Do not apply this expectation to live or active transcripts, changing workspaces, remote GitHub state, or commands that can produce new output.
 
 ## Manual Trigger Test
 
