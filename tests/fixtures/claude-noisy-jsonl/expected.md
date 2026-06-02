@@ -6,8 +6,8 @@ The Claude Code transcript has duplicate title events, queue metadata, user/assi
 
 ## Task status breakdown
 
-- DONE: Run focused checkout retry tests.
-- NOT DONE: Run full integration suite.
+- DONE: Run focused checkout retry tests - evidence: `tests/fixtures/claude-noisy-jsonl/tool-results/checkout.txt:L3`.
+- NOT DONE: Run full integration suite - evidence: `tests/fixtures/claude-noisy-jsonl/transcript.jsonl:L7`.
 
 ## Clear next action
 

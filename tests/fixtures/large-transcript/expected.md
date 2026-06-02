@@ -6,9 +6,9 @@ The source represents a large transcript that should be inventoried and searched
 
 ## Task status breakdown
 
-- DONE: Add payment retry helper.
-- PARTIALLY DONE: Wire retry helper into checkout flow.
-- NOT DONE: Fix failing payment retry test.
+- DONE: Add payment retry helper - evidence: `tests/fixtures/large-transcript/handoff.md:L13`.
+- PARTIALLY DONE: Wire retry helper into checkout flow - evidence: `tests/fixtures/large-transcript/handoff.md:L14`.
+- NOT DONE: Fix failing payment retry test - evidence: `tests/fixtures/large-transcript/handoff.md:L15`.
 
 ## Clear next action
 

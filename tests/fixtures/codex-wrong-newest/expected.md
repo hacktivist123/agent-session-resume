@@ -6,8 +6,8 @@ The newest indexed Codex session belongs to `/workspace/profile` and should be s
 
 ## Task status breakdown
 
-- DONE: Add checkout retry banner.
-- NOT DONE: Run full checkout suite.
+- DONE: Add checkout retry banner - evidence: `tests/fixtures/codex-wrong-newest/older-matching.jsonl:L3`.
+- NOT DONE: Run full checkout suite - evidence: `tests/fixtures/codex-wrong-newest/older-matching.jsonl:L3`.
 
 ## Clear next action
 

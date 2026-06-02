@@ -16,6 +16,26 @@ Clear next action
 
 Only after that checkpoint should the agent continue implementation.
 
+## Resume Modes
+
+Use report-only mode when the user asks for status, the latest stopping point, or a done/partial/not-done breakdown:
+
+```text
+Use agent-session-resume.
+
+Check the last conversation in this folder and tell me where it left off.
+```
+
+Use continue-edit mode when the user asks the agent to act after the checkpoint:
+
+```text
+Use agent-session-resume.
+
+Continue the previous session and finish the first unfinished task.
+```
+
+Use quick resume for a compact status report. Use deep resume when the agent will edit files, when the transcript source is ambiguous, or when the current repo may have drifted since the prior session.
+
 ## Claude Code
 
 Recommended install is the Claude Code plugin:
@@ -174,6 +194,12 @@ The main pattern is:
 3. Use a short resume prompt.
 4. Require the checkpoint before edits.
 
+Before switching agents, ask the current agent for a compact handoff instead of pasting a full transcript:
+
+```text
+Create a compact handoff for the next coding agent. Include only the goal, completed work, in-progress work, not-done work, changed files, commands run, verification, exact stopping point, and next action. Redact secrets and customer data.
+```
+
 ### Claude Code Continuing Codex
 
 ```bash
@@ -205,6 +231,37 @@ Use agent-session-resume.
 Continue from ./handoff.md.
 ```
 
+## Helper Scripts
+
+The repo includes small local helpers for discovery and digesting. They are optional: use them when a transcript store is noisy or a source file is too large to read directly.
+
+### Find Candidate Sessions
+
+Use `session-candidates.py` to shortlist likely transcripts before opening transcript bodies.
+
+```bash
+python3 scripts/session-candidates.py --platform codex --cwd "$PWD" --format tsv
+python3 scripts/session-candidates.py --platform claude-code --cwd "$PWD" --format tsv
+```
+
+For Codex, the helper reads `session_index.jsonl` first and resolves candidate IDs to transcript files. For Claude Code, it derives the likely `~/.claude/projects/<project>` directory from the current cwd before falling back to broader project scans.
+
+Use `--topic` when the user gave a title or theme:
+
+```bash
+python3 scripts/session-candidates.py --platform codex --cwd "$PWD" --topic "checkout retry"
+```
+
+### Create A Compact Evidence Digest
+
+Use `session-digest.py` to produce a bounded orientation digest from transcript, export, handoff, or artifact files:
+
+```bash
+python3 scripts/session-digest.py path/to/session.jsonl path/to/handoff.md
+```
+
+The digest is an orientation aid, not a replacement for evidence review. After digesting, still inspect the relevant transcript slices, tool outputs, changed files, git state, and verification results before continuing work.
+
 ## Good Handoff File Template
 
 When leaving one agent and moving to another, ask the first agent to create:
@@ -231,6 +288,66 @@ When leaving one agent and moving to another, ask the first agent to create:
 ## Next Action
 ```
 
+Keep the headings stable so another agent or validator can check the handoff shape. The repo includes a lightweight validator for this template:
+
+```bash
+python3 scripts/validate-handoff.py path/to/handoff.md
+```
+
+### Redaction Rules
+
+Cross-agent handoffs should carry task evidence, not private data. Before sharing a handoff or turning it into a fixture:
+
+- Replace API keys, tokens, passwords, cookies, and bearer values with `<redacted>`.
+- Replace customer names, emails, IDs, and private URLs with placeholders unless they are essential to the bug.
+- Summarize large logs instead of pasting full output.
+- For Claude Code sidecars or Codex tool outputs, include the command, result, and relevant error lines rather than raw files.
+- Add a short redaction note when sensitive values were removed.
+
+### Minimal Handoff Example
+
+```text
+# Handoff
+
+## Goal
+
+Finish checkout retry handling.
+
+## Completed
+
+- Added retry helper in `src/checkout/retry.ts`.
+- Focused retry tests pass.
+
+## In Progress
+
+- Webhook replay path still needs inspection.
+
+## Not Done
+
+- Full checkout integration suite has not been run.
+
+## Files Changed
+
+- `src/checkout/retry.ts`
+- `tests/checkout-retry.test.ts`
+
+## Commands Run
+
+- `npm test -- tests/checkout-retry.test.ts` passed.
+
+## Verification
+
+- Focused tests passed; integration coverage is still missing.
+
+## Exact Stopping Point
+
+Stopped before checking whether webhook replay should reuse the retry helper.
+
+## Next Action
+
+Inspect webhook replay, reuse the helper if needed, then run the full checkout integration suite.
+```
+
 ## Common Pitfalls
 
 - Do not resume from a summary when a full transcript is available.
@@ -238,4 +355,3 @@ When leaving one agent and moving to another, ask the first agent to create:
 - Do not mark planned work as `DONE`.
 - Do not edit before the checkpoint.
 - Do not reinstall both Claude plugin and standalone Claude skill unless you intentionally want duplicate command suggestions.
-

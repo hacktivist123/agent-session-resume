@@ -6,9 +6,9 @@ The noisy Codex transcript is for `/workspace/shop`. It includes token-count tel
 
 ## Task status breakdown
 
-- DONE: Add retry banner UI.
-- DONE: Run focused retry tests.
-- NOT DONE: Run full checkout suite.
+- DONE: Add retry banner UI - evidence: `tests/fixtures/codex-noisy-jsonl/transcript.jsonl:L7`.
+- DONE: Run focused retry tests - evidence: `tests/fixtures/codex-noisy-jsonl/transcript.jsonl:L7`.
+- NOT DONE: Run full checkout suite - evidence: `tests/fixtures/codex-noisy-jsonl/transcript.jsonl:L7-L8`.
 
 ## Clear next action
 
