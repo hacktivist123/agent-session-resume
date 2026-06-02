@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -18,6 +19,7 @@ REQUIRED_EXPECTED_SECTIONS = (
     "Clear next action",
 )
 REQUIRED_STATUSES = ("DONE", "PARTIALLY DONE", "NOT DONE")
+EVIDENCE_REF = re.compile(r"evidence:\s*`tests/fixtures/[^`]+:L\d+(?:-L\d+)?`")
 
 
 def fail(message: str) -> None:
@@ -86,6 +88,18 @@ def validate_scenario(scenario: dict, seen_ids: set[str]) -> str:
                 fail(f"{scenario_id}: task_statuses.{status} contains invalid task")
             if task not in expected_text:
                 fail(f"{scenario_id}: task {task!r} missing from expected output")
+            task_line = next(
+                (
+                    line
+                    for line in expected_text.splitlines()
+                    if line.startswith(f"- {status}: ") and task in line
+                ),
+                "",
+            )
+            if not task_line:
+                fail(f"{scenario_id}: task {task!r} missing status line in expected output")
+            if not EVIDENCE_REF.search(task_line):
+                fail(f"{scenario_id}: task {task!r} missing fixture evidence reference")
 
     return platform
 

@@ -54,6 +54,12 @@
       "category": "paraphrase",
       "prompt": "Before touching the repo, work out which tasks from the previous assistant are done, partial, or not started.",
       "rationale": "Paraphrases task classification without naming any platform."
+    },
+    {
+      "id": "folder-last-conversation",
+      "category": "folder-scoped",
+      "prompt": "Check the last conversation I had with an agent in this folder and tell me where it left off.",
+      "rationale": "Uses folder-scoped last-conversation phrasing and asks for the stopping point."
     }
   ],
   "should_not_trigger": [
@@ -86,6 +92,12 @@
       "category": "general-qa",
       "prompt": "What is the weather forecast for London tomorrow morning?",
       "rationale": "General question answering should not load a coding-session resume skill."
+    },
+    {
+      "id": "generic-chat-history",
+      "category": "general-qa",
+      "prompt": "What did we chat about yesterday?",
+      "rationale": "Generic chat-history recall is not necessarily a coding-agent session resume request."
     }
   ]
 }
