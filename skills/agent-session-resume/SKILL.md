@@ -70,6 +70,7 @@ Use the user's prompt to decide how far to go after the checkpoint:
 
 - Claude Code: read `references/claude-code.md`.
 - Codex: read `references/codex.md`.
+- Cursor: read `references/cursor.md`.
 - Antigravity: read `references/antigravity.md`.
 - OpenCode: read `references/opencode.md`.
 

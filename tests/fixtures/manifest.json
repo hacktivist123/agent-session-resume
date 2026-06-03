@@ -82,6 +82,34 @@
       }
     },
     {
+      "id": "cursor-agent-export-discount-preview",
+      "platform": "cursor",
+      "source_files": [
+        "cursor-agent-export/export.md"
+      ],
+      "expected": "cursor-agent-export/expected.md",
+      "source_cues": [
+        "Exported from Cursor Agent",
+        ".cursor/rules/checkout.mdc",
+        "Cursor context note"
+      ],
+      "expected_cues": [
+        "Cursor Agent Markdown export",
+        "Cursor rule context"
+      ],
+      "task_statuses": {
+        "DONE": [
+          "Add discount code parser"
+        ],
+        "PARTIALLY DONE": [
+          "Wire discount summary into checkout preview"
+        ],
+        "NOT DONE": [
+          "Run full checkout suite"
+        ]
+      }
+    },
+    {
       "id": "codex-noisy-jsonl-checkout-retry",
       "platform": "codex",
       "source_files": [

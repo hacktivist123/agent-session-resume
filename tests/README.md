@@ -53,6 +53,7 @@ The validator checks matrix structure and coverage. It does not prove model beha
 - `codex-compacted-handoff`: compacted handoff with a failing reload persistence test
 - `antigravity-artifacts`: artifact-only handoff with missing mobile verification
 - `opencode-session-export`: session export with leftover cleanup and leak check work
+- `cursor-agent-export`: Markdown export with Cursor rule context and unfinished preview wiring
 - `codex-noisy-jsonl`: noisy Codex JSONL with telemetry, reasoning, tool calls, and bounded resume evidence
 - `codex-wrong-newest`: candidate-selection pressure case where a newer unrelated session must lose to the cwd match
 - `claude-noisy-jsonl`: Claude JSONL with duplicate titles, queue metadata, and a persisted-output sidecar

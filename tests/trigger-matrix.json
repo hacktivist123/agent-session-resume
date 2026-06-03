@@ -32,6 +32,12 @@
       "rationale": "Names a supported platform and asks for task status reconstruction."
     },
     {
+      "id": "platform-cursor-export",
+      "category": "platform-specific",
+      "prompt": "Continue from this Cursor Agent chat export and tell me what is done versus pending.",
+      "rationale": "Names Cursor and asks to resume from an Agent chat export."
+    },
+    {
       "id": "handoff-transcript",
       "category": "handoff-artifact",
       "prompt": "I have a transcript from another coding agent; read it fully, reconstruct context, and resume the unfinished step.",

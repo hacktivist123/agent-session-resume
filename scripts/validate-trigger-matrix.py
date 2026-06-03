@@ -25,7 +25,7 @@ REQUIRED_NEGATIVE_CATEGORIES = {
     "data-work",
     "general-qa",
 }
-REQUIRED_PLATFORMS = {"Claude Code", "Codex", "Antigravity", "OpenCode"}
+REQUIRED_PLATFORMS = {"Claude Code", "Codex", "Cursor", "Antigravity", "OpenCode"}
 
 
 def fail(message: str) -> None:
