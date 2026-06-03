@@ -1,6 +1,6 @@
 # Cookbook
 
-This cookbook shows practical ways to use `agent-session-resume` with Claude Code, Codex, Antigravity, and OpenCode.
+This cookbook shows practical ways to use `agent-session-resume` with Claude Code, Codex, Cursor, Antigravity, and OpenCode.
 
 The skill's job is to make your prompt small. You name the prior agent/session source; the skill handles transcript discovery, full reading, task classification, and continuing from the true stopping point.
 
@@ -184,6 +184,49 @@ opencode.json
 ```
 
 When the `opencode` CLI or SDK is available, the agent should prefer supported session access over scraping private storage.
+
+## Cursor
+
+Prefer Cursor Agent Markdown exports when moving work from Cursor into another agent:
+
+```text
+Use agent-session-resume.
+
+Continue from this Cursor Agent chat export.
+```
+
+Cursor documents chat export as Markdown with messages, responses, code blocks, file references, and chronological flow. Treat that export as the transcript source, then verify claims against current files, `git status`, commands, and tests before editing.
+
+If no export is present, inspect project-local context before app internals:
+
+```text
+.cursor/rules/
+.cursor/commands/
+AGENTS.md
+.cursorrules
+```
+
+These files can explain style, workflow, or constraints, but they do not prove task completion.
+
+### Local Cursor Storage
+
+On macOS, Cursor may keep project-scoped and app-scoped state in locations like:
+
+```text
+~/.cursor/projects/<path-encoded-project>/
+~/Library/Application Support/Cursor/User/workspaceStorage/<hash>/
+~/Library/Application Support/Cursor/User/globalStorage/
+```
+
+Use these as bounded discovery clues, not as the default transcript source. A safe local traversal is:
+
+1. Check for explicit exports or handoff files in the workspace.
+2. Inspect `~/.cursor/projects/<path-encoded-current-cwd>/` for project-scoped artifacts such as `agent-transcripts/`, `terminals/`, `rules/`, `mcp-cache.json`, and assets.
+3. Map `workspaceStorage/*/workspace.json` back to the current `file://` project path before considering any `state.vscdb`.
+4. If inspecting `state.vscdb`, list table names, keys, and value sizes before reading values.
+5. Avoid giant global storage DBs unless the user explicitly asks and there is no better export.
+
+For Cursor Background Agents, normal chat history may not contain the conversation. Prefer the produced branch or PR, changed files, and an exported Background Agent conversation when available.
 
 ## Cross-Agent Handoffs
 
