@@ -149,6 +149,19 @@ Use agent-session-resume.
 Continue from ./artifacts/antigravity-walkthrough.md and ./artifacts/task-list.md.
 ```
 
+If the user asks to use local Antigravity data on macOS, inspect readable artifacts before private application state:
+
+```bash
+find "$HOME/.gemini/antigravity/brain" -maxdepth 2 -type f \( \
+  -name '*.metadata.json' -o \
+  -name 'task.md' -o \
+  -name 'implementation_plan.md' -o \
+  -name '*.resolved*' \
+\) 2>/dev/null
+```
+
+Use metadata summaries and `updatedAt` values to rank candidate conversations, then read the smallest task or implementation-plan artifacts that explain the work. `~/Library/Application Support/Antigravity/User/workspaceStorage/*/workspace.json` can map storage hashes back to project paths. Treat `User/History`, logs, app database keys, browser recordings, binary conversation files, and code tracker snapshots as supporting clues unless the user explicitly points at them.
+
 The agent should prefer an exported transcript when present, but artifact evidence is often enough to reconstruct:
 
 - original user request

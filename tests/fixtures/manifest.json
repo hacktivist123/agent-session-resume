@@ -63,6 +63,40 @@
       }
     },
     {
+      "id": "antigravity-local-store-import-progress",
+      "platform": "antigravity",
+      "source_files": [
+        "antigravity-local-store/brain/3dbce2c8/task.md.metadata.json",
+        "antigravity-local-store/brain/3dbce2c8/task.md",
+        "antigravity-local-store/brain/3dbce2c8/implementation_plan.md.metadata.json",
+        "antigravity-local-store/brain/3dbce2c8/implementation_plan.md",
+        "antigravity-local-store/User/workspaceStorage/b3dd84cd/workspace.json",
+        "antigravity-local-store/User/History/2e52dc3f/entries.json"
+      ],
+      "expected": "antigravity-local-store/expected.md",
+      "source_cues": [
+        "ARTIFACT_TYPE_TASK",
+        "file:///workspace/importer/src/imports/ProgressBanner.tsx",
+        "history.entries"
+      ],
+      "expected_cues": [
+        "Metadata identifies the task and implementation-plan artifacts",
+        "edit-history clue only"
+      ],
+      "task_statuses": {
+        "DONE": [
+          "Add progress banner component",
+          "Run focused import progress test"
+        ],
+        "PARTIALLY DONE": [
+          "Wire retry copy into import empty state"
+        ],
+        "NOT DONE": [
+          "Run full import suite"
+        ]
+      }
+    },
+    {
       "id": "opencode-session-export-event-listener",
       "platform": "opencode",
       "source_files": [
