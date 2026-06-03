@@ -2,7 +2,7 @@
 
 `agent-session-resume` is a reusable skill for continuing work from a prior AI coding-agent session without losing context, duplicating completed work, or overwriting unrelated changes.
 
-It is designed for handoffs between tools such as Claude Code, Codex, Antigravity, and OpenCode.
+It is designed for handoffs between tools such as Claude Code, Codex, Cursor, Antigravity, and OpenCode.
 
 Instead of asking the next agent to guess what happened, the skill makes it produce a handoff checkpoint first: the prior goal, what is already done, what is still open, and the next action to take before editing.
 
@@ -32,6 +32,7 @@ skills/
       antigravity.md
       claude-code.md
       codex.md
+      cursor.md
       opencode.md
 ```
 
@@ -61,6 +62,8 @@ cp -R "$tmp_dir/agent-session-resume/skills/agent-session-resume" "${CODEX_HOME:
 ```
 
 Restart Codex after installing.
+
+If you update the installed skill files, restart Codex or start a new session before expecting the new instructions to be active.
 
 ### Claude Code
 
@@ -112,6 +115,8 @@ Use the standalone install if you prefer the shorter `/agent-session-resume` com
 
 Choose one Claude Code install path. Installing both the plugin and standalone skill can show duplicate short command suggestions; the namespaced plugin command avoids ambiguity.
 
+If you update the installed skill files, restart Claude Code or run `/reload-plugins` before expecting active sessions to use the new instructions.
+
 ### Other Agents
 
 For agents that do not support skill folders directly, load `skills/agent-session-resume/SKILL.md` as the main instruction document and use the relevant platform file from `skills/agent-session-resume/references/`.
@@ -121,6 +126,8 @@ For agents that do not support skill folders directly, load `skills/agent-sessio
 Short prompts should be enough; the skill carries the platform-specific discovery rules.
 
 For more examples, see the [cookbook](docs/Cookbook.md).
+
+For benchmark areas, fixture expectations, and issue/PR evaluation fields, see [Benchmarking](docs/Benchmarking.md).
 
 Continue the most recent Codex session for the current repository:
 
@@ -142,11 +149,26 @@ Expected first response shape:
 
 ```text
 Brief context summary
+Loaded skill: path=<loaded SKILL.md path or unknown>; source/version=<marker or unknown>
 Task status breakdown
+User deferrals
 Clear next action
 ```
 
 After that checkpoint, the agent should continue from the first unfinished step without redoing completed work.
+
+## Skill Source And Deferrals
+
+Resume reports should identify the loaded skill path and source/version marker when available, and should say `unknown` when the runtime does not expose them. Useful markers include the Claude plugin manifest version, marketplace package version, git commit, tag, package source, or a checksum of the loaded `SKILL.md`.
+
+When comparing Codex and Claude Code behavior, compare the known install paths before concluding that the same skill version ran:
+
+```text
+${CODEX_HOME:-$HOME/.codex}/skills/agent-session-resume/SKILL.md
+$HOME/.claude/skills/agent-session-resume/SKILL.md
+```
+
+Explicit user deferrals such as "skip", "park", "leave out", or "not now" should be preserved in resume context. A vague prompt such as "Proceed" should not unpark that scope without confirmation.
 
 ## Claude Code Notes
 
@@ -183,7 +205,9 @@ claude plugin validate .claude-plugin/plugin.json
 claude plugin validate .claude-plugin/marketplace.json
 ```
 
-The standalone skill under `skills/agent-session-resume` is the source of truth. The optional Claude plugin wrapper uses the repo root as its source, so it shares that canonical skill folder instead of maintaining a second copy. The fixtures in `tests/fixtures/` cover Claude Code, Codex, Antigravity, and OpenCode handoff shapes. Each scenario pairs sample session material with the expected context summary, task status breakdown, and next action. `tests/trigger-matrix.json` tracks prompt coverage for manual or automated trigger testing.
+The standalone skill under `skills/agent-session-resume` is the source of truth. The optional Claude plugin wrapper uses the repo root as its source, so it shares that canonical skill folder instead of maintaining a second copy. The fixtures in `tests/fixtures/` cover Claude Code, Codex, Cursor, Antigravity, and OpenCode handoff shapes. Each scenario pairs sample session material with the expected context summary, task status breakdown, and next action. `tests/trigger-matrix.json` tracks prompt coverage for manual or automated trigger testing.
+
+Use [docs/Benchmarking.md](docs/Benchmarking.md) when proposing improvements so PRs explain what behavior changed, how it was measured, and what a good result looks like.
 
 ## License
 

@@ -1,6 +1,6 @@
 # Cookbook
 
-This cookbook shows practical ways to use `agent-session-resume` with Claude Code, Codex, Antigravity, and OpenCode.
+This cookbook shows practical ways to use `agent-session-resume` with Claude Code, Codex, Cursor, Antigravity, and OpenCode.
 
 The skill's job is to make your prompt small. You name the prior agent/session source; the skill handles transcript discovery, full reading, task classification, and continuing from the true stopping point.
 
@@ -10,7 +10,9 @@ Every resume should begin with:
 
 ```text
 Brief context summary
+Loaded skill: path=<loaded SKILL.md path or unknown>; source/version=<marker or unknown>
 Task status breakdown
+User deferrals
 Clear next action
 ```
 
@@ -35,6 +37,20 @@ Continue the previous session and finish the first unfinished task.
 ```
 
 Use quick resume for a compact status report. Use deep resume when the agent will edit files, when the transcript source is ambiguous, or when the current repo may have drifted since the prior session.
+
+### Deep Resume With Parallel Read-Only Workers
+
+For large or possibly forked sessions, Deep resume may use a small read-only parallel strategy:
+
+```text
+Use agent-session-resume.
+
+Deep resume this prior session. You may use up to 3 read-only workers to inspect transcript slices, sidecars, and current files. The coordinator owns the final report and task classification. Do not edit before the checkpoint.
+```
+
+Keep the coordinator responsible for candidate selection, source coverage, mismatch handling, and the final `DONE`/`PARTIALLY DONE`/`NOT DONE` classification. Workers should only gather evidence, use compact tables, and report exact source references. If worker setup is unavailable, noisy, or slower than direct inspection, fall back to sequential reading.
+
+When transcript timestamps matter, compare UTC or epoch values and separate transcript freshness from repository freshness. Recheck the transcript tail and `git status --short --branch` before the checkpoint if the resume took long enough for upstream or append-log drift to matter.
 
 ## Claude Code
 
@@ -149,6 +165,19 @@ Use agent-session-resume.
 Continue from ./artifacts/antigravity-walkthrough.md and ./artifacts/task-list.md.
 ```
 
+If the user asks to use local Antigravity data on macOS, inspect readable artifacts before private application state:
+
+```bash
+find "$HOME/.gemini/antigravity/brain" -maxdepth 2 -type f \( \
+  -name '*.metadata.json' -o \
+  -name 'task.md' -o \
+  -name 'implementation_plan.md' -o \
+  -name '*.resolved*' \
+\) 2>/dev/null
+```
+
+Use metadata summaries and `updatedAt` values to rank candidate conversations, then read the smallest task or implementation-plan artifacts that explain the work. `~/Library/Application Support/Antigravity/User/workspaceStorage/*/workspace.json` can map storage hashes back to project paths. Treat `User/History`, logs, app database keys, browser recordings, binary conversation files, and code tracker snapshots as supporting clues unless the user explicitly points at them.
+
 The agent should prefer an exported transcript when present, but artifact evidence is often enough to reconstruct:
 
 - original user request
@@ -185,6 +214,49 @@ opencode.json
 
 When the `opencode` CLI or SDK is available, the agent should prefer supported session access over scraping private storage.
 
+## Cursor
+
+Prefer Cursor Agent Markdown exports when moving work from Cursor into another agent:
+
+```text
+Use agent-session-resume.
+
+Continue from this Cursor Agent chat export.
+```
+
+Cursor documents chat export as Markdown with messages, responses, code blocks, file references, and chronological flow. Treat that export as the transcript source, then verify claims against current files, `git status`, commands, and tests before editing.
+
+If no export is present, inspect project-local context before app internals:
+
+```text
+.cursor/rules/
+.cursor/commands/
+AGENTS.md
+.cursorrules
+```
+
+These files can explain style, workflow, or constraints, but they do not prove task completion.
+
+### Local Cursor Storage
+
+On macOS, Cursor may keep project-scoped and app-scoped state in locations like:
+
+```text
+~/.cursor/projects/<path-encoded-project>/
+~/Library/Application Support/Cursor/User/workspaceStorage/<hash>/
+~/Library/Application Support/Cursor/User/globalStorage/
+```
+
+Use these as bounded discovery clues, not as the default transcript source. A safe local traversal is:
+
+1. Check for explicit exports or handoff files in the workspace.
+2. Inspect `~/.cursor/projects/<path-encoded-current-cwd>/` for project-scoped artifacts such as `agent-transcripts/`, `terminals/`, `rules/`, `mcp-cache.json`, and assets.
+3. Map `workspaceStorage/*/workspace.json` back to the current `file://` project path before considering any `state.vscdb`.
+4. If inspecting `state.vscdb`, list table names, keys, and value sizes before reading values.
+5. Avoid giant global storage DBs unless the user explicitly asks and there is no better export.
+
+For Cursor Background Agents, normal chat history may not contain the conversation. Prefer the produced branch or PR, changed files, and an exported Background Agent conversation when available.
+
 ## Cross-Agent Handoffs
 
 The main pattern is:
@@ -197,8 +269,52 @@ The main pattern is:
 Before switching agents, ask the current agent for a compact handoff instead of pasting a full transcript:
 
 ```text
-Create a compact handoff for the next coding agent. Include only the goal, completed work, in-progress work, not-done work, changed files, commands run, verification, exact stopping point, and next action. Redact secrets and customer data.
+Create a compact handoff for the next coding agent. Include only the goal, completed work, in-progress work, deferred or parked scope, not-done work, changed files, commands run, verification, exact stopping point, and next action. Redact secrets and customer data.
 ```
+
+### Prove Which Skill Ran
+
+When comparing behavior between Codex and Claude Code, first prove which installed skill each runtime loaded. Ask each agent to report:
+
+- loaded `SKILL.md` path, or `unknown` if the runtime does not expose it
+- source/version marker such as plugin manifest version, marketplace version, git commit, tag, package source, or checksum
+- candidate install paths checked, clearly labeled as candidates when they are not proven loaded
+
+Common standalone install paths to compare:
+
+```text
+${CODEX_HOME:-$HOME/.codex}/skills/agent-session-resume/SKILL.md
+$HOME/.claude/skills/agent-session-resume/SKILL.md
+```
+
+Claude Code plugin installs may report a plugin-managed loaded path or only the plugin manifest/version. If the path or version cannot be proven, the resume report should say `unknown` instead of inferring from a nearby checkout.
+
+After updating an installed skill, restart the app/CLI or reload the plugin before expecting active sessions to use the new instructions. A running Codex or Claude Code session may keep the previously loaded skill text.
+
+Useful checks when the files are accessible:
+
+```bash
+shasum -a 256 "${CODEX_HOME:-$HOME/.codex}/skills/agent-session-resume/SKILL.md"
+shasum -a 256 "$HOME/.claude/skills/agent-session-resume/SKILL.md"
+```
+
+If a repository checkout is being used as the package source, record its commit too:
+
+```bash
+git -C /path/to/agent-session-resume rev-parse HEAD
+```
+
+### Preserve Parked Scope
+
+Explicit user deferrals are part of the handoff. Words such as "skip", "park", "leave out", "not now", "later", "hold", or "out of scope" should be carried forward with evidence and an explicit reopen rule.
+
+If the next prompt is vague, such as:
+
+```text
+Proceed.
+```
+
+the agent should continue only the unparked next action. It should ask before reviving deferred scope unless the user clearly names that scope or the recorded reopen condition has been met.
 
 ### Claude Code Continuing Codex
 
@@ -262,6 +378,23 @@ python3 scripts/session-digest.py path/to/session.jsonl path/to/handoff.md
 
 The digest is an orientation aid, not a replacement for evidence review. After digesting, still inspect the relevant transcript slices, tool outputs, changed files, git state, and verification results before continuing work.
 
+## Benchmarking Improvements
+
+When proposing changes to the skill, adapters, fixtures, or helper scripts, describe the behavior being improved and the benchmark target. Use the standard areas in [Benchmarking](Benchmarking.md), especially session selection, discovery effort, token usage proxy, resume accuracy, evidence quality, safety/redaction, robustness, trigger behavior, and reviewer clarity.
+
+Recommended PR sections:
+
+```markdown
+## What this improves
+
+## Benchmark target
+
+| Benchmark area | What we measure | Good result |
+| --- | --- | --- |
+```
+
+Use deterministic fixture checks for repository consistency, then add agent-in-the-loop notes when a change affects realistic discovery or resume behavior.
+
 ## Good Handoff File Template
 
 When leaving one agent and moving to another, ask the first agent to create:
@@ -274,6 +407,8 @@ When leaving one agent and moving to another, ask the first agent to create:
 ## Completed
 
 ## In Progress
+
+## Deferred / Parked
 
 ## Not Done
 
@@ -321,6 +456,10 @@ Finish checkout retry handling.
 ## In Progress
 
 - Webhook replay path still needs inspection.
+
+## Deferred / Parked
+
+- Loyalty discount handling was explicitly parked until the retry bug is fixed.
 
 ## Not Done
 

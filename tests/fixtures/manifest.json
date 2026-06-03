@@ -63,6 +63,40 @@
       }
     },
     {
+      "id": "antigravity-local-store-import-progress",
+      "platform": "antigravity",
+      "source_files": [
+        "antigravity-local-store/brain/3dbce2c8/task.md.metadata.json",
+        "antigravity-local-store/brain/3dbce2c8/task.md",
+        "antigravity-local-store/brain/3dbce2c8/implementation_plan.md.metadata.json",
+        "antigravity-local-store/brain/3dbce2c8/implementation_plan.md",
+        "antigravity-local-store/User/workspaceStorage/b3dd84cd/workspace.json",
+        "antigravity-local-store/User/History/2e52dc3f/entries.json"
+      ],
+      "expected": "antigravity-local-store/expected.md",
+      "source_cues": [
+        "ARTIFACT_TYPE_TASK",
+        "file:///workspace/importer/src/imports/ProgressBanner.tsx",
+        "history.entries"
+      ],
+      "expected_cues": [
+        "Metadata identifies the task and implementation-plan artifacts",
+        "edit-history clue only"
+      ],
+      "task_statuses": {
+        "DONE": [
+          "Add progress banner component",
+          "Run focused import progress test"
+        ],
+        "PARTIALLY DONE": [
+          "Wire retry copy into import empty state"
+        ],
+        "NOT DONE": [
+          "Run full import suite"
+        ]
+      }
+    },
+    {
       "id": "opencode-session-export-event-listener",
       "platform": "opencode",
       "source_files": [
@@ -78,6 +112,34 @@
         ],
         "NOT DONE": [
           "Run leak check"
+        ]
+      }
+    },
+    {
+      "id": "cursor-agent-export-discount-preview",
+      "platform": "cursor",
+      "source_files": [
+        "cursor-agent-export/export.md"
+      ],
+      "expected": "cursor-agent-export/expected.md",
+      "source_cues": [
+        "Exported from Cursor Agent",
+        ".cursor/rules/checkout.mdc",
+        "Cursor context note"
+      ],
+      "expected_cues": [
+        "Cursor Agent Markdown export",
+        "Cursor rule context"
+      ],
+      "task_statuses": {
+        "DONE": [
+          "Add discount code parser"
+        ],
+        "PARTIALLY DONE": [
+          "Wire discount summary into checkout preview"
+        ],
+        "NOT DONE": [
+          "Run full checkout suite"
         ]
       }
     },
@@ -146,11 +208,14 @@
       "expected": "claude-noisy-jsonl/expected.md",
       "source_cues": [
         "\"type\":\"ai-title\"",
+        "\"type\":\"thinking\"",
+        "\"signature\":\"opaque-signature-placeholder\"",
         "<persisted-output>",
         "tool-results/checkout.txt"
       ],
       "expected_cues": [
         "duplicate title events",
+        "opaque thinking/signature payloads are noise",
         "persisted-output sidecar"
       ],
       "task_statuses": {

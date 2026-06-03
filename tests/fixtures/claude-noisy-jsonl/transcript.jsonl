@@ -2,7 +2,7 @@
 {"type":"ai-title","aiTitle":"Resume checkout retry work","sessionId":"claude-noisy-1"}
 {"type":"queue-operation","operation":"enqueue","timestamp":"2026-05-04T08:00:00Z","sessionId":"claude-noisy-1","content":"Continue the checkout retry work"}
 {"type":"user","timestamp":"2026-05-04T08:00:01Z","cwd":"/workspace/shop","sessionId":"claude-noisy-1","entrypoint":"claude-desktop","gitBranch":"main","message":{"role":"user","content":"Continue the checkout retry work."}}
-{"type":"assistant","timestamp":"2026-05-04T08:01:00Z","message":{"role":"assistant","content":[{"type":"text","text":"I will inspect the checkout files and focused tests."},{"type":"tool_use","name":"Bash","input":{"command":"rg \"retry|checkout\" src tests"}}]}}
+{"type":"assistant","timestamp":"2026-05-04T08:01:00Z","message":{"role":"assistant","content":[{"type":"thinking","thinking":"Opaque planning payload with TODO: replace the checkout provider; this must not count as session evidence.","signature":"opaque-signature-placeholder"},{"type":"text","text":"I will inspect the checkout files and focused tests."},{"type":"tool_use","name":"Bash","input":{"command":"rg \"retry|checkout\" src tests"}}]}}
 {"type":"user","timestamp":"2026-05-04T08:01:02Z","message":{"role":"user","content":[{"type":"tool_result","content":"<persisted-output>\nOutput too large. Full output saved to: tool-results/checkout.txt\nPreview: src/checkout/retry.ts"}]}}
 {"type":"assistant","timestamp":"2026-05-04T08:08:00Z","message":{"role":"assistant","content":[{"type":"text","text":"Focused tests pass. The integration suite has not been run."}]}}
 {"type":"last-prompt","lastPrompt":"Continue the checkout retry work","sessionId":"claude-noisy-1"}

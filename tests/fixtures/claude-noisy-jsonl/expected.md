@@ -2,7 +2,7 @@
 
 ## Brief context summary
 
-The Claude Code transcript has duplicate title events, queue metadata, user/assistant messages, and a persisted-output sidecar. The useful evidence is that checkout retry focused tests passed and the full integration suite remains unrun.
+The Claude Code transcript has duplicate title events, queue metadata, user/assistant messages, an opaque thinking/signature payload, and a persisted-output sidecar. The opaque thinking/signature payloads are noise; the useful evidence is that checkout retry focused tests passed and the full integration suite remains unrun.
 
 ## Task status breakdown
 

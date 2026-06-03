@@ -44,6 +44,8 @@ Common locations:
 - `${CODEX_HOME:-$HOME/.codex}/sessions/YYYY/MM/DD/*.jsonl` - active or recent session transcripts.
 - `${CODEX_HOME:-$HOME/.codex}/archived_sessions/*.jsonl` - archived transcripts.
 
+Treat Codex transcripts as append logs that may still be active. A recent `updated_at` or file modification time proves transcript freshness only; it does not prove the repository is fresh. Compare transcript timestamps, file mtimes, and `git status`/remote refs separately.
+
 Before reading a transcript body, confirm that its `session_meta` `cwd` matches the current repository. Project only the field you need instead of dumping the raw record, because Codex `session_meta` can include large base instructions and tool metadata:
 
 ```bash
@@ -82,6 +84,16 @@ Example:
 
 Use `git status --short --branch` early to understand what already changed. If the active folder is not a git repository, locate the relevant repo from the transcript or user-provided path.
 
+When comparing candidate times, normalize to UTC or epoch seconds before deciding which record is newer:
+
+```bash
+jq -r '.updated_at // .timestamp // empty' "${CODEX_HOME:-$HOME/.codex}/session_index.jsonl" | head
+stat -f '%m %N' "$session_file" 2>/dev/null
+git log -1 --format='%ct %h %s'
+```
+
+If a Deep resume may run for a long time, recheck the chosen transcript tail and `git status --short --branch` before the checkpoint report. If the tail changed while reading, account for the appended events before classifying tasks.
+
 ## Safe Reading
 
 Codex session files can contain raw metadata and very large tool results. Do not load or paste entire `session_meta` records, full session indexes, or giant tool outputs when only routing fields or a small evidence slice is needed.
@@ -109,12 +121,31 @@ Use event types to decide what to inspect next:
 | `response_item` with `function_call_output` | Tool output; inspect selectively when relevant |
 | token counts, web-search status, and other telemetry | Usually skip unless debugging the resume process itself |
 
-For large tool outputs, first identify the relevant event, command, file, or error text. Then slice by line range or search for matching terms instead of loading the whole output:
+For large tool outputs, first identify the relevant event, command, file, or error text. Then search a sidecar or narrowed output source, or slice the specific transcript line range, instead of loading the whole output:
 
 ```bash
-rg -n "error|failed|TODO|<file-or-symbol-pattern>" "$session_file"
+rg -n "error|failed|TODO|<file-or-symbol-pattern>" path/to/tool-output-or-sidecar.txt
 sed -n '120,220p' "$session_file"
 ```
+
+Do not use broad raw JSONL regex scans as the first evidence pass for Codex transcripts. Matches inside `session_meta`, embedded developer/system instructions, tool schemas, or serialized prompts can look like user-visible TODOs or errors even when they are only context. Project the event stream first, then apply targeted `rg` to that projected view or to a narrowed line range:
+
+```bash
+jq -r '
+  select(.type == "event_msg" or .type == "response_item")
+  | if .type == "event_msg" and (.payload.type == "user_message" or .payload.type == "agent_message") then
+      [.timestamp, .payload.type, (.payload.message // .payload.text // "")]
+    elif .type == "response_item" and .payload.type == "function_call" then
+      [.timestamp, "tool_call", ((.payload.name // "tool") + " " + ((.payload.arguments // "") | tostring))]
+    elif .type == "response_item" and .payload.type == "function_call_output" then
+      [.timestamp, "tool_output", ((.payload.output // .payload.content // "") | tostring | .[0:1000])]
+    else empty
+    end
+  | @tsv
+' "$session_file" | rg -n "error|failed|TODO|<file-or-symbol-pattern>"
+```
+
+Use raw `rg` only after the projection reveals a specific event, file path, command, or line range worth inspecting.
 
 ## Reading
 
@@ -140,4 +171,5 @@ This intentionally keeps only user and agent messages with timestamps, skipping 
 
 - If the user says the prior session was from Claude Code and Codex is only the current runtime, use the Claude Code adapter for transcript discovery.
 - Codex work often includes compacted context. Treat summaries as useful but incomplete until checked against changed files, tests, and git state.
+- Codex work can fork into worker or sub-agent sessions. Detect child sessions by `parent_session_id`, shared thread IDs, worker metadata, nearby timestamps, matching cwd, or messages that mention delegated/background work. Review the parent and relevant child transcripts as one evidence set, but keep their source references separate.
 - Do not overwrite user edits in a dirty worktree while trying to recreate prior work.

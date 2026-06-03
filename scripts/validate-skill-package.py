@@ -19,6 +19,7 @@ CLAUDE_PLUGIN_MANIFEST = ROOT / ".claude-plugin" / "plugin.json"
 REQUIRED_REFERENCES = {
     "claude-code.md": "Claude Code",
     "codex.md": "Codex",
+    "cursor.md": "Cursor",
     "antigravity.md": "Antigravity",
     "opencode.md": "OpenCode",
 }

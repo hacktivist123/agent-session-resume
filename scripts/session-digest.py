@@ -5,12 +5,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 from typing import Any
 
 
 MAX_PREVIEW = 500
 KEYWORDS = ("todo", "not done", "partially done", "failed", "error", "next", "pause", "stop here")
+SIDECAR_RE = re.compile(r"Full output saved to:\s*(?P<path>[^\s]+)")
 
 
 def preview(text: Any, limit: int = MAX_PREVIEW) -> str:
@@ -61,6 +63,48 @@ def text_from_claude_content(content: Any) -> str:
     return "\n".join(part for part in parts if part)
 
 
+def sidecar_paths(text: str, transcript_path: Path) -> list[Path]:
+    paths: list[Path] = []
+    for match in SIDECAR_RE.finditer(text):
+        raw_path = match.group("path")
+        candidate = Path(raw_path)
+        if not candidate.is_absolute():
+            candidate = transcript_path.parent / candidate
+        paths.append(candidate)
+    return paths
+
+
+def line_count(path: Path) -> int:
+    with path.open(encoding="utf-8", errors="replace") as handle:
+        return sum(1 for _ in handle)
+
+
+def digest_sidecar(path: Path) -> dict[str, Any]:
+    if not path.exists() or not path.is_file():
+        return {"path": str(path), "exists": False, "bytes": 0, "lines": 0, "preview": "", "cue_hits": []}
+
+    cue_hits: list[str] = []
+    preview_lines: list[str] = []
+    with path.open(encoding="utf-8", errors="replace") as handle:
+        for index, line in enumerate(handle, start=1):
+            clean = line.strip()
+            if index <= 5 and clean:
+                preview_lines.append(clean)
+            if clean and any(keyword in clean.lower() for keyword in KEYWORDS):
+                cue_hits.append(f"{path}:L{index}: {preview(clean)}")
+            if len(cue_hits) >= 8 and index > 5:
+                break
+
+    return {
+        "path": str(path),
+        "exists": True,
+        "bytes": path.stat().st_size,
+        "lines": line_count(path),
+        "preview": preview(" ".join(preview_lines)),
+        "cue_hits": cue_hits,
+    }
+
+
 def digest_codex(path: Path, rows: list[dict[str, Any]]) -> dict[str, Any]:
     meta: dict[str, Any] = {}
     timeline: list[str] = []
@@ -99,6 +143,7 @@ def digest_claude(path: Path, rows: list[dict[str, Any]]) -> dict[str, Any]:
     timeline: list[str] = []
     tool_calls: list[str] = []
     evidence: list[str] = []
+    sidecars: dict[str, dict[str, Any]] = {}
     seen_titles: set[str] = set()
     for row in rows:
         row_type = row.get("type")
@@ -128,13 +173,23 @@ def digest_claude(path: Path, rows: list[dict[str, Any]]) -> dict[str, Any]:
         text = text_from_claude_content(content)
         if not text:
             continue
+        for sidecar_path in sidecar_paths(text, path):
+            sidecars[str(sidecar_path)] = digest_sidecar(sidecar_path)
         line = f"{timestamp} {role}: {preview(text)}"
         timeline.append(line)
         if "[tool_use" in text:
             tool_calls.append(line)
         if any(keyword in text.lower() for keyword in KEYWORDS):
             evidence.append(line)
-    return {"platform": "claude-code", "path": str(path), "meta": meta, "timeline": timeline, "tool_calls": tool_calls, "evidence": evidence}
+    return {
+        "platform": "claude-code",
+        "path": str(path),
+        "meta": meta,
+        "timeline": timeline,
+        "tool_calls": tool_calls,
+        "evidence": evidence,
+        "sidecars": list(sidecars.values()),
+    }
 
 
 def digest_text(path: Path) -> dict[str, Any]:
@@ -172,6 +227,15 @@ def print_digest(digests: list[dict[str, Any]]) -> None:
             print("\n### Evidence Cues")
             for line in digest["evidence"][:12]:
                 print(f"- {line}")
+        if digest.get("sidecars"):
+            print("\n### Sidecars")
+            for sidecar in digest["sidecars"][:8]:
+                exists = "yes" if sidecar["exists"] else "no"
+                print(f"- {sidecar['path']} (exists: {exists}, bytes: {sidecar['bytes']}, lines: {sidecar['lines']})")
+                if sidecar["preview"]:
+                    print(f"  - preview: {sidecar['preview']}")
+                for cue in sidecar["cue_hits"][:4]:
+                    print(f"  - cue: {cue}")
 
 
 def main() -> None:
