@@ -38,6 +38,20 @@ Continue the previous session and finish the first unfinished task.
 
 Use quick resume for a compact status report. Use deep resume when the agent will edit files, when the transcript source is ambiguous, or when the current repo may have drifted since the prior session.
 
+### Deep Resume With Parallel Read-Only Workers
+
+For large or possibly forked sessions, Deep resume may use a small read-only parallel strategy:
+
+```text
+Use agent-session-resume.
+
+Deep resume this prior session. You may use up to 3 read-only workers to inspect transcript slices, sidecars, and current files. The coordinator owns the final report and task classification. Do not edit before the checkpoint.
+```
+
+Keep the coordinator responsible for candidate selection, source coverage, mismatch handling, and the final `DONE`/`PARTIALLY DONE`/`NOT DONE` classification. Workers should only gather evidence, use compact tables, and report exact source references. If worker setup is unavailable, noisy, or slower than direct inspection, fall back to sequential reading.
+
+When transcript timestamps matter, compare UTC or epoch values and separate transcript freshness from repository freshness. Recheck the transcript tail and `git status --short --branch` before the checkpoint if the resume took long enough for upstream or append-log drift to matter.
+
 ## Claude Code
 
 Recommended install is the Claude Code plugin:

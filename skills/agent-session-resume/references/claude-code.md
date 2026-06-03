@@ -34,6 +34,8 @@ Claude Code stores full transcripts and prompt history in different places:
 
 Use `history.jsonl` as a locator and context supplement, not as a transcript replacement. It can reveal the project path, the user's exact prompts, and nearby session intent even when the matching transcript is hard to identify. When a relevant history entry is used, include the project path or prompt-history clue in the context summary.
 
+Treat Claude Code project transcripts as append logs that may still be active. A recent transcript timestamp or file modification time proves transcript freshness only; it does not prove the repository, branch, dependencies, or generated files are fresh. Compare transcript freshness and repository freshness separately.
+
 Do not treat a `history.jsonl` miss as evidence that no transcript exists. If prompt history does not contain the current cwd or session topic, inspect the cwd-derived `~/.claude/projects/<project>` directory before broadening discovery.
 
 Common useful formats include JSONL transcripts, Markdown exports, text exports, and metadata files. If a session name is provided, search contents and metadata before sorting by time:
@@ -70,6 +72,16 @@ When multiple Claude project directories or transcripts could match, rank candid
 Do not let prefix siblings outrank an exact cwd match. For example, `~/.claude/projects/-Users-ojima-Desktop-experiments` should outrank `~/.claude/projects/-Users-ojima-Desktop-experiments-trybreak-prototype` when the current cwd is `/Users/ojima/Desktop/experiments`.
 
 If no title is provided, sort candidate files by modified time only after applying the stronger path and metadata signals.
+
+When comparing candidate times, normalize to UTC or epoch seconds before deciding which record is newer:
+
+```bash
+jq -r '.timestamp // empty' "$session" | head
+stat -f '%m %N' "$session" 2>/dev/null
+git log -1 --format='%ct %h %s'
+```
+
+If a Deep resume may run for a long time, recheck the chosen transcript tail and `git status --short --branch` before the checkpoint report. If the tail changed while reading, account for the appended events before classifying tasks.
 
 ## Reading
 
@@ -169,6 +181,8 @@ The exact stopping point should come from the final meaningful events, not from 
 - the last assistant response after that prompt
 - any final tool call or tool result that explains a blocker
 - whether the last state is a completed report, an unanswered question, a failed command, or a pending next step
+
+Claude Code work can fork into parallel terminals, sidecar tool outputs, or handoffs to another agent. Detect these by shared session IDs, worker labels in messages, sidecar paths, matching cwd, nearby timestamps, or explicit delegation language. Review the parent transcript and relevant forked streams as one evidence set, but keep source references separate in the report.
 
 ## Resume Notes
 

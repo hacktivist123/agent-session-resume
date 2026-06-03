@@ -44,6 +44,8 @@ Common locations:
 - `${CODEX_HOME:-$HOME/.codex}/sessions/YYYY/MM/DD/*.jsonl` - active or recent session transcripts.
 - `${CODEX_HOME:-$HOME/.codex}/archived_sessions/*.jsonl` - archived transcripts.
 
+Treat Codex transcripts as append logs that may still be active. A recent `updated_at` or file modification time proves transcript freshness only; it does not prove the repository is fresh. Compare transcript timestamps, file mtimes, and `git status`/remote refs separately.
+
 Before reading a transcript body, confirm that its `session_meta` `cwd` matches the current repository. Project only the field you need instead of dumping the raw record, because Codex `session_meta` can include large base instructions and tool metadata:
 
 ```bash
@@ -81,6 +83,16 @@ Example:
 | `C`, updated today | mentions a package name, no cwd match | inspect only if no stronger match exists |
 
 Use `git status --short --branch` early to understand what already changed. If the active folder is not a git repository, locate the relevant repo from the transcript or user-provided path.
+
+When comparing candidate times, normalize to UTC or epoch seconds before deciding which record is newer:
+
+```bash
+jq -r '.updated_at // .timestamp // empty' "${CODEX_HOME:-$HOME/.codex}/session_index.jsonl" | head
+stat -f '%m %N' "$session_file" 2>/dev/null
+git log -1 --format='%ct %h %s'
+```
+
+If a Deep resume may run for a long time, recheck the chosen transcript tail and `git status --short --branch` before the checkpoint report. If the tail changed while reading, account for the appended events before classifying tasks.
 
 ## Safe Reading
 
@@ -159,4 +171,5 @@ This intentionally keeps only user and agent messages with timestamps, skipping 
 
 - If the user says the prior session was from Claude Code and Codex is only the current runtime, use the Claude Code adapter for transcript discovery.
 - Codex work often includes compacted context. Treat summaries as useful but incomplete until checked against changed files, tests, and git state.
+- Codex work can fork into worker or sub-agent sessions. Detect child sessions by `parent_session_id`, shared thread IDs, worker metadata, nearby timestamps, matching cwd, or messages that mention delegated/background work. Review the parent and relevant child transcripts as one evidence set, but keep their source references separate.
 - Do not overwrite user edits in a dirty worktree while trying to recreate prior work.
