@@ -2,6 +2,8 @@
 
 Use this adapter when resuming work from Cursor, a Cursor Agent chat export, a Cursor Background Agent handoff, or Cursor project-local artifacts.
 
+If the prior work was GitHub Copilot Chat running in stock VS Code rather than Cursor's own Agent/Composer chat, use `references/github-copilot.md` instead. Cursor is a VS Code fork, so it shares the `workspaceStorage/<hash>/workspace.json` mapping, but it stores its native chat in `state.vscdb`, not in VS Code's `chatSessions/*.json`.
+
 ## Source Priority
 
 Cursor has both documented handoff surfaces and local application state. Prefer stable, explicit sources before inspecting local internals:

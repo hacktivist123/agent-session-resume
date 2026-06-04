@@ -254,6 +254,36 @@
           "Fix failing payment retry test"
         ]
       }
+    },
+    {
+      "id": "github-copilot-session-api-retry",
+      "platform": "github-copilot",
+      "source_files": [
+        "github-copilot-session/workspace.json",
+        "github-copilot-session/transcript.jsonl"
+      ],
+      "expected": "github-copilot-session/expected.md",
+      "source_cues": [
+        "GitHub.copilot-chat",
+        "file:///workspace/shop",
+        "tool.execution_start"
+      ],
+      "expected_cues": [
+        "GitHub Copilot Chat",
+        "transcript"
+      ],
+      "task_statuses": {
+        "DONE": [
+          "Add backoff retry wrapper",
+          "Run focused retry test"
+        ],
+        "PARTIALLY DONE": [
+          "Wire retry wrapper into the API client"
+        ],
+        "NOT DONE": [
+          "Run the full API suite"
+        ]
+      }
     }
   ]
 }

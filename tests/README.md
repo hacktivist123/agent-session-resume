@@ -64,3 +64,4 @@ The validator checks matrix structure and coverage. It does not prove model beha
 - `codex-wrong-newest`: candidate-selection pressure case where a newer unrelated session must lose to the cwd match
 - `claude-noisy-jsonl`: Claude JSONL with duplicate titles, queue metadata, opaque thinking/signature payloads, and a persisted-output sidecar
 - `large-transcript`: large-transcript pressure case that should be inventoried and searched before deep reading
+- `github-copilot-session`: VS Code Copilot Chat session JSON plus `workspace.json` mapping, with completed retry wrapper, partial client wiring, and an unrun full suite
