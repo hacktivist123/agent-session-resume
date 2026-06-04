@@ -38,36 +38,39 @@ skills/
 
 ## Install
 
-This repo is distributed primarily as a skill. The canonical installable package is:
+The quickest way to install is the [`skills`](https://github.com/vercel-labs/skills) CLI (`npx skills`). It reads the canonical `skills/agent-session-resume` folder from this repo and installs it for whichever agent you target — no manual cloning or copying.
 
-```text
-skills/agent-session-resume
-```
-
-### Codex
-
-Ask Codex to install it:
-
-```text
-Install the skill from hacktivist123/agent-session-resume at skills/agent-session-resume
-```
-
-Manual install:
+Install (interactive — choose which agents to install into):
 
 ```bash
-tmp_dir="$(mktemp -d)"
-git clone --depth 1 https://github.com/hacktivist123/agent-session-resume "$tmp_dir/agent-session-resume"
-mkdir -p "${CODEX_HOME:-$HOME/.codex}/skills"
-cp -R "$tmp_dir/agent-session-resume/skills/agent-session-resume" "${CODEX_HOME:-$HOME/.codex}/skills/"
+npx skills add hacktivist123/agent-session-resume
 ```
 
-Restart Codex after installing.
+Install for specific agents without prompts:
 
-If you update the installed skill files, restart Codex or start a new session before expecting the new instructions to be active.
+```bash
+npx skills add hacktivist123/agent-session-resume -a claude-code -a codex -a cursor -a opencode -y
+```
 
-### Claude Code
+Install globally (user-level instead of the current project) with `-g`:
 
-Recommended plugin install:
+```bash
+npx skills add hacktivist123/agent-session-resume -g
+```
+
+Update to the latest version:
+
+```bash
+npx skills update agent-session-resume
+```
+
+`npx skills update` with no name updates every installed skill. List or remove the skill with `npx skills list` and `npx skills remove agent-session-resume`.
+
+After installing or updating, restart the agent (or start a new session) so it loads the current instructions.
+
+### Claude Code plugin (alternative)
+
+If you prefer a Claude Code plugin with a namespaced command instead of the `npx skills` flow, add the marketplace and install the plugin:
 
 ```text
 /plugin marketplace add hacktivist123/agent-session-resume
@@ -82,44 +85,11 @@ claude plugin marketplace add hacktivist123/agent-session-resume
 claude plugin install agent-session-resume@hacktivist123
 ```
 
-After CLI install, restart Claude Code or run `/reload-plugins` in Claude Code.
-
-This installs the skill as a Claude Code plugin command:
-
-```text
-/agent-session-resume:agent-session-resume
-```
-
-The plugin points at the same canonical `skills/agent-session-resume` folder used by the standalone skill package.
-
-Alternative standalone skill install:
-
-```text
-Install the standalone Claude Code skill from https://github.com/hacktivist123/agent-session-resume.
-Copy the repository folder skills/agent-session-resume into ~/.claude/skills/agent-session-resume.
-Do not use the Claude Code plugin marketplace for this standalone flow.
-```
-
-Manual standalone install:
-
-```bash
-tmp_dir="$(mktemp -d)"
-git clone --depth 1 https://github.com/hacktivist123/agent-session-resume "$tmp_dir/agent-session-resume"
-mkdir -p "$HOME/.claude/skills"
-cp -R "$tmp_dir/agent-session-resume/skills/agent-session-resume" "$HOME/.claude/skills/"
-```
-
-Restart Claude Code after installing.
-
-Use the standalone install if you prefer the shorter `/agent-session-resume` command or do not want to use Claude Code plugins.
-
-Choose one Claude Code install path. Installing both the plugin and standalone skill can show duplicate short command suggestions; the namespaced plugin command avoids ambiguity.
-
-If you update the installed skill files, restart Claude Code or run `/reload-plugins` before expecting active sessions to use the new instructions.
+This gives the namespaced command `/agent-session-resume:agent-session-resume`. The marketplace id is `hacktivist123` (defined in `.claude-plugin/marketplace.json`), so the install reference is `agent-session-resume@hacktivist123`. Restart Claude Code or run `/reload-plugins` after installing.
 
 ### Other Agents
 
-For agents that do not support skill folders directly, load `skills/agent-session-resume/SKILL.md` as the main instruction document and use the relevant platform file from `skills/agent-session-resume/references/`.
+`npx skills` supports 70+ agents; pass `-a <agent>` to target one (for example `-a github-copilot`, `-a windsurf`, or `-a cline`). For an agent the CLI does not cover, load `skills/agent-session-resume/SKILL.md` as the main instruction document and use the relevant platform file from `skills/agent-session-resume/references/`.
 
 ## Usage
 
