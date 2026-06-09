@@ -82,6 +82,32 @@ Read the export in order. Capture:
 
 Cursor export docs say exports include messages/responses, code blocks, file references/context, and chronological conversation flow. Still verify claims against current files and `git status` before editing.
 
+## Safe Reading
+
+Cursor exports and project-scoped artifacts can be large. Check size before reading any candidate body:
+
+```bash
+wc -lc path/to/export.md
+```
+
+Peek structure and evidence cues before reading bodies, then read only the slices that carry evidence:
+
+```bash
+rg -n "^#|^##|TODO|error|failed|stop here" path/to/export.md
+sed -n '40,120p' path/to/export.md
+```
+
+Rank candidates by strongest signal before opening anything: explicit user-supplied path first, then exact cwd/workspace match, then title match, with recency only as a tie-breaker (see Candidate Ranking below). Do not read whole files to decide between candidates.
+
+If a JSONL transcript surfaces (for example under `~/.cursor/projects/<project>/agent-transcripts/`, or a handoff produced by another agent), project it with the packaged scripts from the skill's `scripts/` directory (next to `SKILL.md`) instead of dumping raw lines:
+
+```bash
+python3 "$skill_dir/scripts/session-events.py" path/to/transcript.jsonl --limit 200
+python3 "$skill_dir/scripts/session-digest.py" path/to/transcript.jsonl
+```
+
+For `terminals/` and other artifact folders, slice bounded ranges with `rg -n` plus `sed -n` rather than reading entire outputs.
+
 ## Local Storage Safety
 
 Cursor chat history may be stored locally in SQLite, while Background Agent chats are not part of normal history and may be remote. Local storage formats can be large and unstable.

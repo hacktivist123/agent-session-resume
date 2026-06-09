@@ -45,6 +45,23 @@ find . -maxdepth 5 -type f \( \
 \) 2>/dev/null
 ```
 
+## Safe Reading
+
+Check size before opening any candidate export, storage file, or fetched session dump:
+
+```bash
+wc -lc path/to/export-or-session-file
+```
+
+Project or peek metadata before bodies: prefer `opencode session list` style listings, session titles, and timestamps over opening message bodies. Rank candidates by strongest signal before reading anything: explicit user-supplied path, share link, or session ID first, then exact cwd/project match, then title or summary match, with recency only as a tie-breaker.
+
+For markdown or text exports, map structure with `rg -n "^#|TODO|error|failed"` and read bounded `sed -n '<start>,<end>p'` slices instead of whole files. If a JSONL transcript surfaces (an export, or a handoff produced by another agent), project it with the packaged scripts from the skill's `scripts/` directory (next to `SKILL.md`):
+
+```bash
+python3 "$skill_dir/scripts/session-events.py" path/to/transcript.jsonl --limit 200
+python3 "$skill_dir/scripts/session-digest.py" path/to/transcript.jsonl
+```
+
 ## Reading
 
 Read the full session export or fetched session messages when available. If only a generated title or summary is available, treat it as incomplete and verify against files, tests, and git state.
