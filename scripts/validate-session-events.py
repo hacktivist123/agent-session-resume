@@ -10,7 +10,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPT = ROOT / "scripts" / "session-events.py"
+SCRIPT = ROOT / "skills" / "agent-session-resume" / "scripts" / "session-events.py"
 CODEX_FIXTURE = ROOT / "tests" / "fixtures" / "codex-noisy-jsonl" / "transcript.jsonl"
 CLAUDE_FIXTURE = ROOT / "tests" / "fixtures" / "claude-noisy-jsonl" / "transcript.jsonl"
 

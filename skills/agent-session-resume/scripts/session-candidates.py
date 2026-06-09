@@ -1,13 +1,107 @@
 #!/usr/bin/env python3
-"""List likely agent-session transcripts without dumping transcript bodies."""
+"""List likely agent-session transcripts without dumping transcript bodies.
+
+Supports time-window filters (`--since`, `--until`, ISO dates or relative
+values such as `7d`) and a `--cwd` filter that keeps only sessions whose
+workspace matches the given path exactly or as a parent/child directory.
+"""
 
 from __future__ import annotations
 
 import argparse
 import json
 import os
+import re
+import sys
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
+
+
+RELATIVE_RE = re.compile(r"^(?P<value>\d+)(?P<unit>[smhdw])$")
+RELATIVE_UNITS = {
+    "s": "seconds",
+    "m": "minutes",
+    "h": "hours",
+    "d": "days",
+    "w": "weeks",
+}
+
+
+def parse_when(raw: str) -> float:
+    """Parse an ISO date/datetime or a relative window like 7d into epoch seconds."""
+    value = raw.strip()
+    match = RELATIVE_RE.match(value)
+    if match:
+        delta = timedelta(**{RELATIVE_UNITS[match.group("unit")]: int(match.group("value"))})
+        return (datetime.now(timezone.utc) - delta).timestamp()
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        raise SystemExit(f"invalid --since/--until value: {raw!r} (use ISO date/datetime or relative like 7d, 12h)")
+    if parsed.tzinfo is None:
+        parsed = parsed.astimezone()
+    return parsed.timestamp()
+
+
+def parse_iso_epoch(raw: str) -> float | None:
+    try:
+        parsed = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.astimezone()
+    return parsed.timestamp()
+
+
+def candidate_epoch(candidate: dict[str, Any]) -> float | None:
+    updated_at = str(candidate.get("updated_at") or "")
+    if updated_at.isdigit():
+        return int(updated_at) / 1_000_000_000
+    epoch = parse_iso_epoch(updated_at) if updated_at else None
+    if epoch is not None:
+        return epoch
+    path = candidate.get("path") or ""
+    if path:
+        try:
+            return Path(path).stat().st_mtime
+        except OSError:
+            return None
+    return None
+
+
+def cwd_related(candidate_cwd: str, filter_cwd: str) -> bool:
+    if not candidate_cwd:
+        return False
+    candidate_norm = os.path.normpath(candidate_cwd)
+    filter_norm = os.path.normpath(filter_cwd)
+    return (
+        candidate_norm == filter_norm
+        or candidate_norm.startswith(filter_norm + os.sep)
+        or filter_norm.startswith(candidate_norm + os.sep)
+    )
+
+
+def apply_filters(
+    candidates: list[dict[str, Any]],
+    since_epoch: float | None,
+    until_epoch: float | None,
+    filter_cwd: str | None,
+) -> list[dict[str, Any]]:
+    kept: list[dict[str, Any]] = []
+    for candidate in candidates:
+        if filter_cwd is not None and not cwd_related(candidate.get("cwd") or "", filter_cwd):
+            continue
+        if since_epoch is not None or until_epoch is not None:
+            epoch = candidate_epoch(candidate)
+            if epoch is None:
+                continue
+            if since_epoch is not None and epoch < since_epoch:
+                continue
+            if until_epoch is not None and epoch > until_epoch:
+                continue
+        kept.append(candidate)
+    return kept
 
 
 def read_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -80,7 +174,7 @@ def find_codex_transcript(codex_home: Path, session_id: str) -> Path | None:
     return None
 
 
-def codex_candidates(codex_home: Path, target_cwd: str, topic: str, limit: int) -> list[dict[str, Any]]:
+def codex_candidates(codex_home: Path, target_cwd: str, topic: str) -> list[dict[str, Any]]:
     index = codex_home / "session_index.jsonl"
     candidates: list[dict[str, Any]] = []
     rows = read_jsonl(index) if index.exists() else []
@@ -104,18 +198,17 @@ def codex_candidates(codex_home: Path, target_cwd: str, topic: str, limit: int) 
                 "signals": signals,
             }
         )
-    candidates.sort(key=lambda item: (item["score"], item.get("updated_at", ""), item.get("path", "")), reverse=True)
-    return candidates[:limit]
+    return candidates
 
 
 def encode_claude_project_path(cwd: str) -> str:
     return cwd.replace("/", "-")
 
 
-def claude_candidates(claude_home: Path, target_cwd: str, topic: str, limit: int) -> list[dict[str, Any]]:
+def claude_candidates(claude_home: Path, target_cwd: str, topic: str, scan_all_projects: bool) -> list[dict[str, Any]]:
     projects = claude_home / "projects"
     project_dirs: list[Path] = []
-    if target_cwd:
+    if target_cwd and not scan_all_projects:
         derived = projects / encode_claude_project_path(target_cwd)
         if derived.exists():
             project_dirs.append(derived)
@@ -124,6 +217,8 @@ def claude_candidates(claude_home: Path, target_cwd: str, topic: str, limit: int
 
     candidates: list[dict[str, Any]] = []
     for project_dir in project_dirs:
+        if not project_dir.is_dir():
+            continue
         for path in sorted(project_dir.glob("*.jsonl")):
             title = first_claude_title(path)
             if topic and topic.lower() not in title.lower():
@@ -142,8 +237,7 @@ def claude_candidates(claude_home: Path, target_cwd: str, topic: str, limit: int
                     "signals": signals,
                 }
             )
-    candidates.sort(key=lambda item: (item["score"], item.get("updated_at", ""), item.get("path", "")), reverse=True)
-    return candidates[:limit]
+    return candidates
 
 
 def print_tsv(candidates: list[dict[str, Any]]) -> None:
@@ -164,20 +258,51 @@ def print_tsv(candidates: list[dict[str, Any]]) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--platform", choices=["codex", "claude-code"], required=True)
-    parser.add_argument("--cwd", default=os.getcwd(), help="Workspace path to match; defaults to the current directory.")
+    parser.add_argument(
+        "--cwd",
+        default=None,
+        help=(
+            "Workspace path filter; keeps sessions whose cwd matches exactly or as a parent/child path "
+            "and boosts ranking. When omitted, the current directory is used for ranking only."
+        ),
+    )
     parser.add_argument("--topic", default="", help="Optional title/topic filter.")
+    parser.add_argument(
+        "--since",
+        default=None,
+        help="Keep sessions updated at/after this ISO date/datetime or relative window (e.g. 7d, 12h).",
+    )
+    parser.add_argument(
+        "--until",
+        default=None,
+        help="Keep sessions updated at/before this ISO date/datetime or relative window (e.g. 1d).",
+    )
     parser.add_argument("--limit", type=int, default=10)
     parser.add_argument("--format", choices=["json", "tsv"], default="json")
     parser.add_argument("--codex-home", default=os.environ.get("CODEX_HOME", str(Path.home() / ".codex")))
     parser.add_argument("--claude-home", default=str(Path.home() / ".claude"))
     args = parser.parse_args()
 
+    filter_cwd = os.path.abspath(args.cwd) if args.cwd is not None else None
+    target_cwd = filter_cwd or os.getcwd()
+    since_epoch = parse_when(args.since) if args.since else None
+    until_epoch = parse_when(args.until) if args.until else None
+    if since_epoch is not None and until_epoch is not None and since_epoch > until_epoch:
+        print("session-candidates: --since is later than --until; no sessions can match", file=sys.stderr)
+
     if args.platform == "codex":
-        candidates = codex_candidates(Path(args.codex_home), args.cwd, args.topic, args.limit)
+        candidates = codex_candidates(Path(args.codex_home), target_cwd, args.topic)
     else:
-        candidates = claude_candidates(Path(args.claude_home), args.cwd, args.topic, args.limit)
+        # A --cwd filter accepts parent/child workspaces, so the single derived
+        # project directory is too narrow; scan all project directories instead.
+        scan_all_projects = filter_cwd is not None
+        candidates = claude_candidates(Path(args.claude_home), target_cwd, args.topic, scan_all_projects)
+
+    candidates = apply_filters(candidates, since_epoch, until_epoch, filter_cwd)
+    candidates.sort(key=lambda item: (item["score"], item.get("updated_at", ""), item.get("path", "")), reverse=True)
+    candidates = candidates[: args.limit]
 
     if args.format == "tsv":
         print_tsv(candidates)
