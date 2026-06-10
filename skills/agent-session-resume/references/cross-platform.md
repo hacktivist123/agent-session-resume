@@ -18,27 +18,51 @@ Run each platform adapter's discovery independently and completely. Do not let o
 
 Keep one candidate list per runtime, each entry carrying session ID, transcript path, cwd, title, and updated time.
 
-## Normalize Timestamps
+## Window the Ask
 
-Runtimes mix ISO-8601 strings, local times, and file mtimes. Convert every candidate's time to UTC epoch seconds before comparing across runtimes:
+Time-bounded asks ("past week", "since Monday", "before yesterday") map to the lister's `--since` / `--until` flags, which accept relative windows (`7d`, `12h`) or ISO dates/datetimes. Pass the same window to every runtime so the merged timeline covers one consistent span:
 
 ```bash
-# ISO-8601 -> epoch (BSD date first, GNU date fallback)
-date -j -u -f '%Y-%m-%dT%H:%M:%S' '2026-06-09T14:03:11' +%s 2>/dev/null \
-  || date -u -d '2026-06-09T14:03:11' +%s
+python3 scripts/session-candidates.py --platform claude-code --since 7d --until 1d --format tsv
+python3 scripts/session-candidates.py --platform codex --since 7d --until 1d --format tsv
+```
+
+## Normalize Timestamps
+
+Runtimes mix ISO-8601 strings (often with fractional seconds), local times, and file mtimes. Convert every candidate's time to UTC epoch seconds before comparing across runtimes. Do not reach for BSD `date -j -f`: on real Codex index timestamps such as `2026-06-09T14:03:11.482931Z` it emits "Ignoring 8 extraneous characters" and parses the wrong instant. Use a python3 one-liner that handles fractional-ISO and plain-ISO alike:
+
+```bash
+# ISO-8601 (fractional or plain, Z or numeric offset) -> epoch seconds
+python3 -c 'import sys,datetime as dt; print(int(dt.datetime.fromisoformat(sys.argv[1].replace("Z","+00:00")).timestamp()))' '2026-06-09T14:03:11.482931Z'
 # file mtime -> epoch
 stat -f '%m' "$transcript" 2>/dev/null || stat -c '%Y' "$transcript"
 ```
+
+The same one-liner accepts both platforms' lister output: `session-candidates.py` emits `updated_at` normalized to ISO-8601 UTC with seconds precision (e.g. `2026-06-10T00:15:30Z`) for claude-code and codex alike, so lister rows can also be compared or sorted as plain strings.
 
 Never rank candidates from mixed-format timestamp strings.
 
 ## Build One Merged Timeline
 
-Merge the per-runtime candidate lists into a single timeline keyed by (cwd match, time window). One TSV line per session, sorted by epoch:
+Merge the per-runtime candidate lists into a single timeline keyed by (cwd match, time window). Concretely, with two lister TSVs:
 
 ```bash
-# epoch <TAB> runtime <TAB> cwd <TAB> transcript path <TAB> title
-sort -n /tmp/merged-sessions.tsv | column -t -s $'\t'
+python3 scripts/session-candidates.py --platform claude-code --since 7d --format tsv > /tmp/claude.tsv
+python3 scripts/session-candidates.py --platform codex --since 7d --format tsv > /tmp/codex.tsv
+
+# Drop headers, merge, sort chronologically. updated_at (column 3) is normalized
+# ISO-8601 UTC on both platforms, so a plain string sort is a time sort.
+tail -n +2 /tmp/claude.tsv > /tmp/merged-sessions.tsv
+tail -n +2 /tmp/codex.tsv >> /tmp/merged-sessions.tsv
+sort -t $'\t' -k3,3 /tmp/merged-sessions.tsv | column -t -s $'\t'
+```
+
+When iterating rows, never name a loop variable `path`: in zsh, `read ... path` assigns the tied `$path` array and clobbers `$PATH`, breaking every later command lookup in the shell. Use `transcript` (or similar) instead:
+
+```bash
+while IFS=$'\t' read -r score runtime updated source cwd title transcript; do
+  printf '%s\t%s\t%s\t%s\n' "$updated" "$runtime" "$cwd" "$transcript"
+done < /tmp/merged-sessions.tsv | sort -t $'\t' -k1,1
 ```
 
 Group sessions that share a cwd (or parent/child cwd) into per-repo lanes, then read them in time order. The merged timeline decides reading order; the per-runtime adapters decide how to read each transcript safely.
