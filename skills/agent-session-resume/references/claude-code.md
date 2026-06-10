@@ -50,10 +50,11 @@ Raw-grep trap: do not grep `~/.claude/projects/` transcript bodies for a topic, 
 python3 "$skill_dir/scripts/session-events.py" "$candidate" | rg "text/user" | rg -i "<session name or topic>"
 ```
 
-For shortlisting candidates by cwd, topic, or time window without opening bodies, use the packaged lister:
+For shortlisting candidates by cwd, topic, or time window without opening bodies, use the packaged lister. Time-bounded asks map to `--since` / `--until`, which accept relative windows (`7d`, `12h`) or ISO dates:
 
 ```bash
 python3 "$skill_dir/scripts/session-candidates.py" --platform claude-code --cwd "$(pwd)" --topic "<session name>"
+python3 "$skill_dir/scripts/session-candidates.py" --platform claude-code --cwd "$(pwd)" --since 7d --until 1d
 ```
 
 To filter prompt history by the current workspace path:
@@ -85,7 +86,7 @@ Do not let prefix siblings outrank an exact cwd match. For example, `~/.claude/p
 
 If no title is provided, sort candidate files by modified time only after applying the stronger path and metadata signals.
 
-When comparing candidate times, normalize to UTC or epoch seconds before deciding which record is newer. `session-candidates.py` and `session-events.py` already print normalized event timestamps; cross-check against file and repo time:
+When comparing candidate times, normalize to UTC or epoch seconds before deciding which record is newer. `session-candidates.py` prints every row's `updated_at` normalized to ISO-8601 UTC with seconds precision (e.g. `2026-06-10T00:15:30Z`) on both platforms, so its rows sort chronologically as plain strings, and `session-events.py` prints normalized event timestamps; cross-check against file and repo time:
 
 ```bash
 stat -f '%m %N' "$session" 2>/dev/null

@@ -27,6 +27,12 @@ Use `session_index.jsonl` to shortlist candidate session IDs by thread name, ses
 python3 "$skill_dir/scripts/session-candidates.py" --platform codex --cwd "$(pwd)" --topic "<session name or topic>"
 ```
 
+Warning: `session_index.jsonl` does not cover every transcript. Codex Desktop sub-threads (transcripts with a `parent_thread_id`) never get index entries, so any index-only listing silently omits them. The packaged lister compensates with an mtime fallback sweep over `sessions/YYYY/MM/DD` that surfaces unindexed in-window transcripts as `source=mtime` rows (untitled, so `--topic` cannot match them). On windowed asks where completeness matters, also broaden directly on disk:
+
+```bash
+find "${CODEX_HOME:-$HOME/.codex}/sessions" -name '*.jsonl' -newermt '<date, e.g. 2026-06-03>' 2>/dev/null
+```
+
 After choosing a candidate ID, resolve it to the transcript file:
 
 ```bash
@@ -80,7 +86,7 @@ Example:
 
 Use `git status --short --branch` early to understand what already changed. If the active folder is not a git repository, locate the relevant repo from the transcript or user-provided path.
 
-When comparing candidate times, normalize to UTC or epoch seconds before deciding which record is newer. `session-candidates.py` already prints normalized `updated_at` values; cross-check against file and repo time:
+When comparing candidate times, normalize to UTC or epoch seconds before deciding which record is newer. `session-candidates.py` prints every row's `updated_at` normalized to ISO-8601 UTC with seconds precision (e.g. `2026-06-10T00:15:30Z`) on both platforms; cross-check against file and repo time:
 
 ```bash
 stat -f '%m %N' "$session_file" 2>/dev/null
