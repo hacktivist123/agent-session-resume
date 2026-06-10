@@ -4,12 +4,14 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
 MATRIX = ROOT / "tests" / "trigger-matrix.json"
+SKILL_MD = ROOT / "skills" / "agent-session-resume" / "SKILL.md"
 
 REQUIRED_TRIGGER_CATEGORIES = {
     "explicit-skill",
@@ -17,6 +19,17 @@ REQUIRED_TRIGGER_CATEGORIES = {
     "platform-specific",
     "handoff-artifact",
     "paraphrase",
+    "locate",
+    "audit",
+    "cross-platform",
+}
+
+# Verb stems the SKILL.md description must keep so locate/audit/review asks
+# still trigger ("locat" covers locating/locate, and so on).
+REQUIRED_DESCRIPTION_VERBS = {
+    "locat": "locating",
+    "audit": "auditing",
+    "review": "reviewing",
 }
 REQUIRED_NEGATIVE_CATEGORIES = {
     "general-coding",
@@ -79,6 +92,28 @@ def validate_cases(name: str, minimum: int, seen_ids: set[str]) -> set[str]:
     return categories
 
 
+def validate_skill_description() -> None:
+    if not SKILL_MD.exists():
+        fail(f"missing skill file: {SKILL_MD.relative_to(ROOT)}")
+    text = SKILL_MD.read_text(encoding="utf-8")
+    match = re.search(r"^description:\s*(\S.*)$", text, flags=re.MULTILINE)
+    if not match:
+        fail("SKILL.md frontmatter must define a description")
+    description = match.group(1).strip().lower()
+
+    missing_verbs = sorted(
+        label for stem, label in REQUIRED_DESCRIPTION_VERBS.items() if stem not in description
+    )
+    if missing_verbs:
+        fail(f"SKILL.md description must keep trigger verbs: {', '.join(missing_verbs)}")
+
+    has_cross_platform_clause = "across" in description and (
+        "platforms" in description or ("claude" in description and "codex" in description)
+    )
+    if not has_cross_platform_clause:
+        fail("SKILL.md description must keep a cross-platform clause (e.g. across several platforms)")
+
+
 def main() -> None:
     data = load_matrix()
     if data.get("version") != 1:
@@ -107,9 +142,12 @@ def main() -> None:
     if missing_platforms:
         fail(f"missing platform trigger coverage: {', '.join(sorted(missing_platforms))}")
 
+    validate_skill_description()
+
     print(
         f"validated {len(data['should_trigger'])} trigger and "
-        f"{len(data['should_not_trigger'])} non-trigger prompts"
+        f"{len(data['should_not_trigger'])} non-trigger prompts "
+        "plus SKILL.md description coverage"
     )
 
 
