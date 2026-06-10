@@ -2,6 +2,8 @@
 
 Use this adapter when resuming a Codex session, continuing from a Codex desktop or CLI handoff, or when a Codex conversation summary is present.
 
+Packaged helper scripts live in the skill's `scripts/` directory, next to `SKILL.md`. Resolve them relative to the skill base directory and set `skill_dir` accordingly before using the commands below.
+
 ## Discovery
 
 Codex may provide prior context directly in the active conversation, through a compaction summary, or through files in the workspace. Treat injected conversation context as a session record, then validate it against the repository before editing.
@@ -19,10 +21,16 @@ Codex normally stores conversation transcripts in the user-level Codex home, not
 tail -n 40 "${CODEX_HOME:-$HOME/.codex}/session_index.jsonl" 2>/dev/null
 ```
 
-Use `session_index.jsonl` to shortlist candidate session IDs by thread name, session name, and update time. If a title or topic is known, filter the index before opening transcripts:
+Use `session_index.jsonl` to shortlist candidate session IDs by thread name, session name, and update time. Use the packaged candidate lister, which ranks candidates without dumping transcript bodies and accepts `--cwd`, `--topic`, `--since`, and `--until` filters:
 
 ```bash
-jq -r 'select((.thread_name // "") | test("<session name or topic>"; "i")) | [.updated_at, .id, .thread_name] | @tsv' "${CODEX_HOME:-$HOME/.codex}/session_index.jsonl"
+python3 "$skill_dir/scripts/session-candidates.py" --platform codex --cwd "$(pwd)" --topic "<session name or topic>"
+```
+
+Warning: `session_index.jsonl` does not cover every transcript. Codex Desktop sub-threads (transcripts with a `parent_thread_id`) never get index entries, so any index-only listing silently omits them. The packaged lister compensates with an mtime fallback sweep over `sessions/YYYY/MM/DD` that surfaces unindexed in-window transcripts as `source=mtime` rows (untitled, so `--topic` cannot match them). On windowed asks where completeness matters, also broaden directly on disk:
+
+```bash
+find "${CODEX_HOME:-$HOME/.codex}/sessions" -name '*.jsonl' -newermt '<date, e.g. 2026-06-03>' 2>/dev/null
 ```
 
 After choosing a candidate ID, resolve it to the transcript file:
@@ -53,13 +61,7 @@ session="<candidate transcript>"
 jq -r 'select(.type == "session_meta") | .payload.cwd // empty' "$session" | head -n 1
 ```
 
-When checking several candidate transcripts, print a compact `cwd<TAB>file` inventory before ranking:
-
-```bash
-for session in path/to/candidates/*.jsonl; do
-  jq -r --arg file "$session" 'select(.type == "session_meta") | [(.payload.cwd // ""), $file] | @tsv' "$session" | head -n 1
-done
-```
+When checking several candidate transcripts, use `session-candidates.py` (above) to print a compact ranked inventory instead of looping `jq` over every file.
 
 ## Candidate Ranking
 
@@ -84,10 +86,9 @@ Example:
 
 Use `git status --short --branch` early to understand what already changed. If the active folder is not a git repository, locate the relevant repo from the transcript or user-provided path.
 
-When comparing candidate times, normalize to UTC or epoch seconds before deciding which record is newer:
+When comparing candidate times, normalize to UTC or epoch seconds before deciding which record is newer. `session-candidates.py` prints every row's `updated_at` normalized to ISO-8601 UTC with seconds precision (e.g. `2026-06-10T00:15:30Z`) on both platforms; cross-check against file and repo time:
 
 ```bash
-jq -r '.updated_at // .timestamp // empty' "${CODEX_HOME:-$HOME/.codex}/session_index.jsonl" | head
 stat -f '%m %N' "$session_file" 2>/dev/null
 git log -1 --format='%ct %h %s'
 ```
@@ -104,10 +105,10 @@ Before reading a candidate transcript, check its size and line count:
 wc -lc "$session_file"
 ```
 
-Project metadata with `jq` instead of dumping raw JSONL:
+Project metadata and the bounded event stream with the packaged projector instead of dumping raw JSONL. Its first projected event is the `session_meta` routing record (id, cwd, originator, CLI version), followed by previewed user/agent messages, tool calls, and truncated tool output:
 
 ```bash
-jq -c 'select(.type == "session_meta") | {id: .payload.id, timestamp: .payload.timestamp, cwd: .payload.cwd, originator: .payload.originator, cli_version: .payload.cli_version}' "$session_file" | head -n 1
+python3 "$skill_dir/scripts/session-events.py" "$session_file" --limit 200
 ```
 
 Use event types to decide what to inspect next:
@@ -131,18 +132,13 @@ sed -n '120,220p' "$session_file"
 Do not use broad raw JSONL regex scans as the first evidence pass for Codex transcripts. Matches inside `session_meta`, embedded developer/system instructions, tool schemas, or serialized prompts can look like user-visible TODOs or errors even when they are only context. Project the event stream first, then apply targeted `rg` to that projected view or to a narrowed line range:
 
 ```bash
-jq -r '
-  select(.type == "event_msg" or .type == "response_item")
-  | if .type == "event_msg" and (.payload.type == "user_message" or .payload.type == "agent_message") then
-      [.timestamp, .payload.type, (.payload.message // .payload.text // "")]
-    elif .type == "response_item" and .payload.type == "function_call" then
-      [.timestamp, "tool_call", ((.payload.name // "tool") + " " + ((.payload.arguments // "") | tostring))]
-    elif .type == "response_item" and .payload.type == "function_call_output" then
-      [.timestamp, "tool_output", ((.payload.output // .payload.content // "") | tostring | .[0:1000])]
-    else empty
-    end
-  | @tsv
-' "$session_file" | rg -n "error|failed|TODO|<file-or-symbol-pattern>"
+python3 "$skill_dir/scripts/session-events.py" "$session_file" | rg -n "error|failed|TODO|<file-or-symbol-pattern>"
+```
+
+For a compact reusable summary with evidence cues, build a digest. It writes a persistent `<transcript>.digest.json` sidecar cache and processes only the appended tail on later runs, so rechecks of an active transcript stay cheap:
+
+```bash
+python3 "$skill_dir/scripts/session-digest.py" "$session_file"
 ```
 
 Use raw `rg` only after the projection reveals a specific event, file path, command, or line range worth inspecting.
@@ -155,17 +151,13 @@ Read the current conversation summary, local handoff files, and changed files re
 - facts verified from files
 - inferences from current repository state
 
-For large Codex JSONL transcripts, start with a message-only skim to orient yourself before deeper review:
+For large Codex JSONL transcripts, start with a bounded skim to orient yourself before deeper review:
 
 ```bash
-jq -r '
-  select(.type == "event_msg" or .type == "response_item")
-  | select(.payload.type == "user_message" or .payload.type == "agent_message")
-  | "\n=== \(.timestamp) [\(.payload.type)] ===\n\(.payload.message // .payload.text // "")"
-' "$session_file"
+python3 "$skill_dir/scripts/session-events.py" "$session_file" | rg "user_message|agent_message"
 ```
 
-This intentionally keeps only user and agent messages with timestamps, skipping session metadata, tool calls, tool output, and other large event payloads. Use it as an orientation step, not as a replacement for evidence review: still inspect relevant tool outputs, changed files, git state, tests, and artifacts before continuing work.
+This keeps only previewed user and agent messages with timestamps and transcript line references, skipping session metadata and large event payloads. Use it as an orientation step, not as a replacement for evidence review: still inspect relevant tool outputs, changed files, git state, tests, and artifacts before continuing work.
 
 ## Resume Notes
 

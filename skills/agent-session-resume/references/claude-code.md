@@ -2,6 +2,8 @@
 
 Use this adapter when the prior session came from Claude Code or when the user points to a `.claude/` directory.
 
+Packaged helper scripts live in the skill's `scripts/` directory, next to `SKILL.md`. Resolve them relative to the skill base directory and set `skill_dir` accordingly before using the commands below.
+
 ## Discovery
 
 Start in the current workspace:
@@ -27,9 +29,11 @@ find "$HOME/.claude/projects" -maxdepth 2 -type f -name '*.jsonl' 2>/dev/null
 find "$HOME/.claude" -maxdepth 1 -type f -name 'history.jsonl' 2>/dev/null
 ```
 
-Claude Code stores full transcripts and prompt history in different places:
+Claude Code stores full transcripts, per-session sidecars, and prompt history in different places:
 
 - `~/.claude/projects/<project>/<session>.jsonl`: full conversation transcript with messages, tool calls, and tool results.
+- `~/.claude/projects/<project>/<sessionId>/subagents/agent-*.jsonl`: subagent transcripts. When the main transcript delegates work to agents, include these in the evidence set; the main transcript may show only the dispatch and a summary.
+- `~/.claude/projects/<project>/<sessionId>/tool-results/*.txt`: large tool outputs spilled to disk. Read these targeted files instead of giant inline transcript lines.
 - `~/.claude/history.jsonl`: prompt history used for up-arrow recall, containing prompts with timestamps and project paths.
 
 Use `history.jsonl` as a locator and context supplement, not as a transcript replacement. It can reveal the project path, the user's exact prompts, and nearby session intent even when the matching transcript is hard to identify. When a relevant history entry is used, include the project path or prompt-history clue in the context summary.
@@ -38,10 +42,19 @@ Treat Claude Code project transcripts as append logs that may still be active. A
 
 Do not treat a `history.jsonl` miss as evidence that no transcript exists. If prompt history does not contain the current cwd or session topic, inspect the cwd-derived `~/.claude/projects/<project>` directory before broadening discovery.
 
-Common useful formats include JSONL transcripts, Markdown exports, text exports, and metadata files. If a session name is provided, search contents and metadata before sorting by time:
+Common useful formats include JSONL transcripts, Markdown exports, text exports, and metadata files.
+
+Raw-grep trap: do not grep `~/.claude/projects/` transcript bodies for a topic, skill name, or tool name as a discovery step. Every transcript embeds the available-skills list, plugin descriptions, and other boilerplate inside `system-reminder` blocks, so a topic-shaped `rg` produces mass false positives. Concrete failure shape: `rg -l "agent-session-resume" ~/.claude/projects/` matches roughly 20 unrelated sessions whose only "mention" of the skill is the skills list injected into every conversation. Project user messages first, then search the projected view:
 
 ```bash
-rg -i "<session name>" .claude ~/.claude ~/.claude/history.jsonl 2>/dev/null
+python3 "$skill_dir/scripts/session-events.py" "$candidate" | rg "text/user" | rg -i "<session name or topic>"
+```
+
+For shortlisting candidates by cwd, topic, or time window without opening bodies, use the packaged lister. Time-bounded asks map to `--since` / `--until`, which accept relative windows (`7d`, `12h`) or ISO dates:
+
+```bash
+python3 "$skill_dir/scripts/session-candidates.py" --platform claude-code --cwd "$(pwd)" --topic "<session name>"
+python3 "$skill_dir/scripts/session-candidates.py" --platform claude-code --cwd "$(pwd)" --since 7d --until 1d
 ```
 
 To filter prompt history by the current workspace path:
@@ -73,10 +86,9 @@ Do not let prefix siblings outrank an exact cwd match. For example, `~/.claude/p
 
 If no title is provided, sort candidate files by modified time only after applying the stronger path and metadata signals.
 
-When comparing candidate times, normalize to UTC or epoch seconds before deciding which record is newer:
+When comparing candidate times, normalize to UTC or epoch seconds before deciding which record is newer. `session-candidates.py` prints every row's `updated_at` normalized to ISO-8601 UTC with seconds precision (e.g. `2026-06-10T00:15:30Z`) on both platforms, so its rows sort chronologically as plain strings, and `session-events.py` prints normalized event timestamps; cross-check against file and repo time:
 
 ```bash
-jq -r '.timestamp // empty' "$session" | head
 stat -f '%m %N' "$session" 2>/dev/null
 git log -1 --format='%ct %h %s'
 ```
@@ -105,30 +117,19 @@ Use event types to skim before deep reading:
 
 Repeated `ai-title` events should be treated as one title signal per `(sessionId, aiTitle)` pair. Do not count duplicate title rows as progress, task evidence, or user/assistant turns.
 
-For a message-only skim, extract visible user and assistant text plus bounded tool summaries:
+For a message-only skim, extract visible user and assistant text plus bounded tool summaries with the packaged projector. It emits one previewed event per line with transcript line references and skips opaque thinking/signature payloads, which add noise and do not normally change task status:
 
 ```bash
-jq -r '
-  def text:
-    if (.message.content | type) == "string" then .message.content
-    elif (.message.content | type) == "array" then
-      [.message.content[]
-        | if .type == "text" then .text
-          elif .type == "tool_use" then "[tool_use " + .name + "] " + (.input | tostring)
-          elif .type == "tool_result" then "[tool_result] " + ((.content // "") | tostring | .[0:500])
-          else empty
-          end
-      ] | join("\n")
-    else ""
-    end;
-  select(.type == "user" or .type == "assistant" or .type == "system")
-  | "\n=== \(.timestamp // "") [\(.type)] ===\n\(text)"
-' "$session"
+python3 "$skill_dir/scripts/session-events.py" "$session" --limit 200
 ```
 
-Default skims should include assistant `text` blocks and tool-use summaries. Skip opaque thinking/signature payloads unless debugging transcript format behavior; they add noise and do not normally change task status.
+For a compact reusable summary with evidence cues, build a digest. It writes a persistent `<transcript>.digest.json` sidecar cache and processes only the appended tail on later runs:
 
-Claude Code may persist oversized tool results outside the JSONL transcript. If a tool result contains a placeholder such as `<persisted-output>` or says the full output was saved to `tool-results/<id>.txt`, treat that sidecar as part of the session record.
+```bash
+python3 "$skill_dir/scripts/session-digest.py" "$session"
+```
+
+Claude Code persists oversized tool results outside the JSONL transcript, under the per-session sidecar directory `~/.claude/projects/<project>/<sessionId>/tool-results/*.txt`. If a tool result contains a placeholder such as `<persisted-output>` or says the full output was saved to `tool-results/<id>.txt`, treat that sidecar as part of the session record. Likewise check `~/.claude/projects/<project>/<sessionId>/subagents/agent-*.jsonl` whenever the main transcript dispatches subagents; project them with `session-events.py` like any other transcript.
 
 Inspect sidecars safely:
 
@@ -151,29 +152,10 @@ For large transcript or tool-output files, use an evidence inventory before deep
 If the transcript may still be active or was modified during resume, recheck the tail before reporting. Use a bounded projected tail instead of dumping raw JSONL, so the final scan keeps visible messages, tool-use summaries, and tool-result previews while skipping opaque `thinking` or `signature` payloads:
 
 ```bash
-tail -n 80 "$session" | jq -r '
-  def projected_content:
-    if (.message.content | type) == "string" then
-      {kind: "text", body: .message.content}
-    elif (.message.content | type) == "array" then
-      .message.content[]
-      | if .type == "text" then
-          {kind: "text", body: .text}
-        elif .type == "tool_use" then
-          {kind: "tool_use", body: ((.name // "tool") + " " + ((.input // {}) | tostring))}
-        elif .type == "tool_result" then
-          {kind: "tool_result", body: ((.content // "") | tostring | .[0:500])}
-        else empty
-        end
-    else empty
-    end;
-
-  select(.type == "user" or .type == "assistant" or .type == "system")
-  | . as $event
-  | projected_content
-  | "\($event.timestamp // "")\t\($event.type)\t\(.kind)\t\(.body)"
-'
+python3 "$skill_dir/scripts/session-events.py" "$session" | tail -n 40
 ```
+
+Re-running `session-digest.py` is also cheap here: its `<transcript>.digest.json` sidecar cache means only the appended tail is processed.
 
 The exact stopping point should come from the final meaningful events, not from the first TODO list. Capture:
 

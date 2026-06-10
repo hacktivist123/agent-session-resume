@@ -99,6 +99,30 @@ Prefer the strongest source for the question being resumed:
 
 If artifacts disagree, prefer the latest artifact that includes concrete verification evidence, then validate against current repository files and git state.
 
+## Safe Reading
+
+Check size before opening any candidate artifact body:
+
+```bash
+wc -lc "$HOME/.gemini/antigravity/brain/<conversation-id>/task.md"
+```
+
+Read `*.metadata.json` peeks before bodies, and rank candidates by strongest signal before reading: explicit user-supplied path first, then exact repo/workspace match from metadata or workspace storage, then summary/title match, with recency only as a tie-breaker.
+
+For markdown artifacts (`task.md`, `implementation_plan.md`, walkthroughs), map structure first and read only evidence-bearing slices:
+
+```bash
+rg -n "^#|^-|TODO|\[x\]|\[ \]|error|failed|verified" path/to/task.md
+sed -n '20,80p' path/to/implementation_plan.md
+```
+
+If a JSONL transcript or handoff from another agent surfaces in the workspace, project it with the packaged scripts from the skill's `scripts/` directory (next to `SKILL.md`) instead of reading raw lines:
+
+```bash
+python3 "$skill_dir/scripts/session-events.py" path/to/transcript.jsonl --limit 200
+python3 "$skill_dir/scripts/session-digest.py" path/to/transcript.jsonl
+```
+
 ## Reading
 
 Read artifacts in chronological order when possible. For local Antigravity data, inspect metadata first, then the smallest task/plan artifacts that explain:
