@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -18,6 +19,10 @@ SCRIPT = ROOT / "skills" / "agent-session-resume" / "scripts" / "session-candida
 NOW = datetime.now(timezone.utc)
 RECENT = (NOW - timedelta(days=1)).isoformat()
 OLD = (NOW - timedelta(days=30)).isoformat()
+OLD_EPOCH = (NOW - timedelta(days=30)).timestamp()
+
+ISO_UTC_SECONDS_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
+ALLOWED_SOURCES = {"index", "mtime"}
 
 
 def fail(message: str) -> None:
@@ -59,6 +64,21 @@ def build_codex_home(home: Path, repo_cwd: str, other_cwd: str) -> None:
     write_jsonl(home / "sessions" / "rollout-recent-repo.jsonl", codex_session("recent-repo", repo_cwd))
     write_jsonl(home / "sessions" / "rollout-old-repo.jsonl", codex_session("old-repo", repo_cwd))
     write_jsonl(home / "sessions" / "rollout-recent-other.jsonl", codex_session("recent-other", other_cwd))
+    # Unindexed transcripts (e.g. Codex Desktop sub-threads) live only on disk,
+    # under dated sessions/YYYY/MM/DD directories, and never get index entries.
+    dated = home / "sessions" / "2026" / "06" / "09"
+    write_jsonl(dated / "rollout-sub-recent.jsonl", codex_session("sub-recent", repo_cwd))
+    write_jsonl(dated / "rollout-sub-old.jsonl", codex_session("sub-old", repo_cwd))
+    os.utime(dated / "rollout-sub-old.jsonl", (OLD_EPOCH, OLD_EPOCH))
+
+
+def check_normalized(candidates: list[dict], label: str) -> None:
+    for candidate in candidates:
+        updated_at = str(candidate.get("updated_at") or "")
+        if not ISO_UTC_SECONDS_RE.fullmatch(updated_at):
+            fail(f"{label}: updated_at must be ISO-8601 UTC seconds (e.g. 2026-06-10T00:15:30Z), got {updated_at!r}")
+        if candidate.get("source") not in ALLOWED_SOURCES:
+            fail(f"{label}: source must be one of {sorted(ALLOWED_SOURCES)}, got {candidate.get('source')!r}")
 
 
 def claude_session(cwd: str, title: str) -> list[dict]:
@@ -89,29 +109,41 @@ def validate_codex(tmp: Path) -> None:
     build_codex_home(home, repo_cwd, other_cwd)
     base = ("--platform", "codex", "--codex-home", str(home))
 
-    if ids(run_candidates(*base)) != {"recent-repo", "old-repo", "recent-other"}:
-        fail("codex: unfiltered run should list all sessions")
+    unfiltered = run_candidates(*base)
+    if ids(unfiltered) != {"recent-repo", "old-repo", "recent-other", "rollout-sub-recent", "rollout-sub-old"}:
+        fail("codex: unfiltered run should list indexed sessions plus unindexed mtime-fallback sessions")
+    check_normalized(unfiltered, "codex")
+    sources = {candidate["id"]: candidate.get("source") for candidate in unfiltered}
+    for indexed_id in ("recent-repo", "old-repo", "recent-other"):
+        if sources[indexed_id] != "index":
+            fail(f"codex: indexed session {indexed_id} should carry source=index")
+    for fallback_id in ("rollout-sub-recent", "rollout-sub-old"):
+        if sources[fallback_id] != "mtime":
+            fail(f"codex: unindexed session {fallback_id} should carry source=mtime")
 
-    if ids(run_candidates(*base, "--since", "7d")) != {"recent-repo", "recent-other"}:
-        fail("codex: --since 7d should drop the 30-day-old session")
+    if ids(run_candidates(*base, "--since", "7d")) != {"recent-repo", "recent-other", "rollout-sub-recent"}:
+        fail("codex: --since 7d should drop the 30-day-old sessions but keep the unindexed recent one")
 
     until = (NOW - timedelta(days=7)).date().isoformat()
-    if ids(run_candidates(*base, "--until", until)) != {"old-repo"}:
-        fail("codex: --until should keep only sessions before the cutoff")
+    if ids(run_candidates(*base, "--until", until)) != {"old-repo", "rollout-sub-old"}:
+        fail("codex: --until should keep only sessions before the cutoff, including unindexed ones")
 
     since_iso = (NOW - timedelta(days=7)).date().isoformat()
-    if ids(run_candidates(*base, "--since", since_iso)) != {"recent-repo", "recent-other"}:
-        fail("codex: ISO --since should drop the 30-day-old session")
+    if ids(run_candidates(*base, "--since", since_iso)) != {"recent-repo", "recent-other", "rollout-sub-recent"}:
+        fail("codex: ISO --since should drop the 30-day-old sessions")
 
-    if ids(run_candidates(*base, "--cwd", repo_cwd)) != {"recent-repo", "old-repo"}:
-        fail("codex: --cwd should keep only matching-workspace sessions")
+    if ids(run_candidates(*base, "--cwd", repo_cwd)) != {"recent-repo", "old-repo", "rollout-sub-recent", "rollout-sub-old"}:
+        fail("codex: --cwd should keep only matching-workspace sessions (fallback cwd comes from the first-line peek)")
 
     child = str(Path(repo_cwd) / "packages" / "api")
-    if ids(run_candidates(*base, "--cwd", child)) != {"recent-repo", "old-repo"}:
+    if ids(run_candidates(*base, "--cwd", child)) != {"recent-repo", "old-repo", "rollout-sub-recent", "rollout-sub-old"}:
         fail("codex: --cwd should match parent/child workspaces")
 
-    if ids(run_candidates(*base, "--since", "7d", "--cwd", repo_cwd)) != {"recent-repo"}:
+    if ids(run_candidates(*base, "--since", "7d", "--cwd", repo_cwd)) != {"recent-repo", "rollout-sub-recent"}:
         fail("codex: combined --since and --cwd should intersect")
+
+    if ids(run_candidates(*base, "--topic", "checkout")) != {"recent-repo"}:
+        fail("codex: --topic should match indexed titles only (untitled fallback rows cannot match)")
 
 
 def validate_claude(tmp: Path) -> None:
@@ -121,8 +153,12 @@ def validate_claude(tmp: Path) -> None:
     build_claude_home(home, repo_cwd, other_cwd)
     base = ("--platform", "claude-code", "--claude-home", str(home))
 
-    if ids(run_candidates(*base)) != {"recent-repo", "recent-other", "old-other"}:
+    unfiltered = run_candidates(*base)
+    if ids(unfiltered) != {"recent-repo", "recent-other", "old-other"}:
         fail("claude: unfiltered run should list all sessions")
+    check_normalized(unfiltered, "claude")
+    if any(candidate.get("source") != "mtime" for candidate in unfiltered):
+        fail("claude: updated_at is mtime-derived, so every row should carry source=mtime")
 
     if ids(run_candidates(*base, "--since", "7d")) != {"recent-repo", "recent-other"}:
         fail("claude: --since 7d should drop the 30-day-old session")

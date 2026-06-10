@@ -4,6 +4,12 @@
 Supports time-window filters (`--since`, `--until`, ISO dates or relative
 values such as `7d`) and a `--cwd` filter that keeps only sessions whose
 workspace matches the given path exactly or as a parent/child directory.
+
+Every row's `updated_at` is normalized to ISO-8601 UTC with seconds precision
+(e.g. 2026-06-10T00:15:30Z) on both platforms, and carries a `source` marker:
+`index` (platform session index) or `mtime` (transcript file mtime). For codex,
+an mtime fallback sweep surfaces in-window transcripts the session index never
+recorded (e.g. Codex Desktop sub-threads).
 """
 
 from __future__ import annotations
@@ -26,6 +32,15 @@ RELATIVE_UNITS = {
     "d": "days",
     "w": "weeks",
 }
+
+# Where a candidate's updated_at came from: a platform session index ("index")
+# or the transcript file's mtime ("mtime").
+SOURCE_INDEX = "index"
+SOURCE_MTIME = "mtime"
+
+# Cap for the optional first-line cwd peek on unindexed codex transcripts, so
+# the mtime fallback never reads more than this many bytes per file.
+MAX_CWD_PEEK_BYTES = 65536
 
 
 def parse_when(raw: str) -> float:
@@ -52,6 +67,28 @@ def parse_iso_epoch(raw: str) -> float | None:
     if parsed.tzinfo is None:
         parsed = parsed.astimezone()
     return parsed.timestamp()
+
+
+def iso_utc(epoch: float) -> str:
+    """Render an epoch as ISO-8601 UTC with seconds precision (the one updated_at format both platforms emit)."""
+    return datetime.fromtimestamp(epoch, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def normalize_updated_at(raw: str, path: Path | None) -> str:
+    """Normalize index timestamps (fractional ISO, plain ISO, or epoch nanoseconds) to iso_utc; fall back to file mtime."""
+    value = str(raw or "").strip()
+    if value.isdigit():
+        return iso_utc(int(value) / 1_000_000_000)
+    if value:
+        epoch = parse_iso_epoch(value)
+        if epoch is not None:
+            return iso_utc(epoch)
+    if path is not None:
+        try:
+            return iso_utc(path.stat().st_mtime)
+        except OSError:
+            return ""
+    return ""
 
 
 def candidate_epoch(candidate: dict[str, Any]) -> float | None:
@@ -174,7 +211,81 @@ def find_codex_transcript(codex_home: Path, session_id: str) -> Path | None:
     return None
 
 
-def codex_candidates(codex_home: Path, target_cwd: str, topic: str) -> list[dict[str, Any]]:
+def peek_codex_cwd(path: Path) -> str:
+    """Read at most MAX_CWD_PEEK_BYTES of the first line to recover session_meta cwd; empty string when not cheap/parseable."""
+    try:
+        with path.open(encoding="utf-8", errors="replace") as handle:
+            line = handle.readline(MAX_CWD_PEEK_BYTES).strip()
+    except OSError:
+        return ""
+    if not line or not line.endswith("}"):
+        return ""
+    try:
+        row = json.loads(line)
+    except json.JSONDecodeError:
+        return ""
+    if row.get("type") != "session_meta":
+        return ""
+    payload = row.get("payload") or {}
+    return str(payload.get("cwd") or "")
+
+
+def codex_mtime_fallback(
+    codex_home: Path,
+    known_paths: set[str],
+    target_cwd: str,
+    since_epoch: float | None,
+    until_epoch: float | None,
+) -> list[dict[str, Any]]:
+    """Surface in-window transcripts the session index never recorded (e.g. Codex Desktop sub-threads).
+
+    Cost is bounded: os.walk + stat per file, plus a size-capped first-line cwd
+    peek for files that pass the time window.
+    """
+    sessions_dir = codex_home / "sessions"
+    if not sessions_dir.exists():
+        return []
+    fallback: list[dict[str, Any]] = []
+    for dirpath, _dirnames, filenames in os.walk(sessions_dir):
+        for name in sorted(filenames):
+            if not name.endswith(".jsonl"):
+                continue
+            path = Path(dirpath) / name
+            if str(path) in known_paths:
+                continue
+            try:
+                mtime = path.stat().st_mtime
+            except OSError:
+                continue
+            if since_epoch is not None and mtime < since_epoch:
+                continue
+            if until_epoch is not None and mtime > until_epoch:
+                continue
+            cwd = peek_codex_cwd(path)
+            score, signals = score_candidate(cwd, "", target_cwd, "")
+            fallback.append(
+                {
+                    "platform": "codex",
+                    "id": path.stem,
+                    "title": "",
+                    "updated_at": iso_utc(mtime),
+                    "cwd": cwd,
+                    "path": str(path),
+                    "score": score,
+                    "signals": signals,
+                    "source": SOURCE_MTIME,
+                }
+            )
+    return fallback
+
+
+def codex_candidates(
+    codex_home: Path,
+    target_cwd: str,
+    topic: str,
+    since_epoch: float | None,
+    until_epoch: float | None,
+) -> list[dict[str, Any]]:
     index = codex_home / "session_index.jsonl"
     candidates: list[dict[str, Any]] = []
     rows = read_jsonl(index) if index.exists() else []
@@ -191,13 +302,21 @@ def codex_candidates(codex_home: Path, target_cwd: str, topic: str) -> list[dict
                 "platform": "codex",
                 "id": session_id,
                 "title": title,
-                "updated_at": row.get("updated_at") or "",
+                "updated_at": normalize_updated_at(str(row.get("updated_at") or ""), path),
                 "cwd": cwd,
                 "path": str(path) if path else "",
                 "score": score,
                 "signals": signals,
+                "source": SOURCE_INDEX,
             }
         )
+    # The index silently omits unindexed transcripts (Codex Desktop sub-threads
+    # with parent_thread_id never get index entries); sweep sessions/ by mtime so
+    # those still surface. Skipped under --topic: unindexed files have no title
+    # to match, so the topic filter would drop every fallback row anyway.
+    if not topic:
+        known_paths = {candidate["path"] for candidate in candidates if candidate["path"]}
+        candidates.extend(codex_mtime_fallback(codex_home, known_paths, target_cwd, since_epoch, until_epoch))
     return candidates
 
 
@@ -230,18 +349,19 @@ def claude_candidates(claude_home: Path, target_cwd: str, topic: str, scan_all_p
                     "platform": "claude-code",
                     "id": path.stem,
                     "title": title,
-                    "updated_at": str(path.stat().st_mtime_ns),
+                    "updated_at": iso_utc(path.stat().st_mtime),
                     "cwd": cwd,
                     "path": str(path),
                     "score": score,
                     "signals": signals,
+                    "source": SOURCE_MTIME,
                 }
             )
     return candidates
 
 
 def print_tsv(candidates: list[dict[str, Any]]) -> None:
-    print("score\tplatform\tupdated_at\tcwd\ttitle\tpath")
+    print("score\tplatform\tupdated_at\tsource\tcwd\ttitle\tpath")
     for candidate in candidates:
         print(
             "\t".join(
@@ -249,6 +369,7 @@ def print_tsv(candidates: list[dict[str, Any]]) -> None:
                     str(candidate["score"]),
                     candidate["platform"],
                     str(candidate["updated_at"]),
+                    str(candidate.get("source") or ""),
                     candidate["cwd"],
                     candidate["title"],
                     candidate["path"],
@@ -293,7 +414,7 @@ def main() -> None:
         print("session-candidates: --since is later than --until; no sessions can match", file=sys.stderr)
 
     if args.platform == "codex":
-        candidates = codex_candidates(Path(args.codex_home), target_cwd, args.topic)
+        candidates = codex_candidates(Path(args.codex_home), target_cwd, args.topic, since_epoch, until_epoch)
     else:
         # A --cwd filter accepts parent/child workspaces, so the single derived
         # project directory is too narrow; scan all project directories instead.
