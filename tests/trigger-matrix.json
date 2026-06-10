@@ -38,6 +38,12 @@
       "rationale": "Names Cursor and asks to resume from an Agent chat export."
     },
     {
+      "id": "platform-github-copilot-chat",
+      "category": "platform-specific",
+      "prompt": "Resume the previous GitHub Copilot Chat session for this workspace and continue from the stopping point.",
+      "rationale": "Names GitHub Copilot Chat and asks to resume the workspace session from where it stopped."
+    },
+    {
       "id": "handoff-transcript",
       "category": "handoff-artifact",
       "prompt": "I have a transcript from another coding agent; read it fully, reconstruct context, and resume the unfinished step.",

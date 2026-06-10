@@ -2,7 +2,7 @@
 
 `agent-session-resume` is a reusable skill for continuing work from a prior AI coding-agent session without losing context, duplicating completed work, or overwriting unrelated changes.
 
-It is designed for handoffs between tools such as Claude Code, Codex, Cursor, Antigravity, and OpenCode.
+It is designed for handoffs between tools such as Claude Code, Codex, Cursor, Antigravity, OpenCode, and GitHub Copilot.
 
 Instead of asking the next agent to guess what happened, the skill makes it produce a handoff checkpoint first: the prior goal, what is already done, what is still open, and the next action to take before editing.
 
@@ -33,6 +33,7 @@ skills/
       claude-code.md
       codex.md
       cursor.md
+      github-copilot.md
       opencode.md
 ```
 
@@ -175,7 +176,7 @@ claude plugin validate .claude-plugin/plugin.json
 claude plugin validate .claude-plugin/marketplace.json
 ```
 
-The standalone skill under `skills/agent-session-resume` is the source of truth. The optional Claude plugin wrapper uses the repo root as its source, so it shares that canonical skill folder instead of maintaining a second copy. The fixtures in `tests/fixtures/` cover Claude Code, Codex, Cursor, Antigravity, and OpenCode handoff shapes. Each scenario pairs sample session material with the expected context summary, task status breakdown, and next action. `tests/trigger-matrix.json` tracks prompt coverage for manual or automated trigger testing.
+The standalone skill under `skills/agent-session-resume` is the source of truth. The optional Claude plugin wrapper uses the repo root as its source, so it shares that canonical skill folder instead of maintaining a second copy. The fixtures in `tests/fixtures/` cover Claude Code, Codex, Cursor, Antigravity, OpenCode, and GitHub Copilot handoff shapes. Each scenario pairs sample session material with the expected context summary, task status breakdown, and next action. `tests/trigger-matrix.json` tracks prompt coverage for manual or automated trigger testing.
 
 Use [docs/Benchmarking.md](docs/Benchmarking.md) when proposing improvements so PRs explain what behavior changed, how it was measured, and what a good result looks like.
 
