@@ -72,6 +72,24 @@
       "category": "folder-scoped",
       "prompt": "Check the last conversation I had with an agent in this folder and tell me where it left off.",
       "rationale": "Uses folder-scoped last-conversation phrasing and asks for the stopping point."
+    },
+    {
+      "id": "locate-codex-named-thread",
+      "category": "locate",
+      "prompt": "Find Locate Beta driva session thread on Codex",
+      "rationale": "Asks to locate a named Codex session thread rather than continue work, which is still a session-resume ask."
+    },
+    {
+      "id": "audit-codex-past-week",
+      "category": "audit",
+      "prompt": "review my threads with Codex in the past 1 week and tell me what could have been done better",
+      "rationale": "Time-windowed audit of prior Codex threads asking for a retrospective review."
+    },
+    {
+      "id": "cross-platform-claude-codex-review",
+      "category": "cross-platform",
+      "prompt": "review all the threads we worked on across both Claude and Codex",
+      "rationale": "One ask spans Claude and Codex threads, requiring cross-platform discovery and a merged review."
     }
   ],
   "should_not_trigger": [
