@@ -349,15 +349,17 @@ Continue from ./handoff.md.
 
 ## Helper Scripts
 
-The repo includes small local helpers for discovery and digesting. They are optional: use them when a transcript store is noisy or a source file is too large to read directly.
+The skill package ships small local helpers for discovery and digesting in `skills/agent-session-resume/scripts/`. Because they live inside the skill folder, they are installed alongside `SKILL.md` (for example under `~/.claude/skills/agent-session-resume/scripts/` or `~/.codex/skills/agent-session-resume/scripts/`), so an installed skill can run them instead of re-deriving long jq pipelines. They are python3-stdlib-only, take absolute or relative paths as arguments, and can run from any working directory. They are optional: use them when a transcript store is noisy or a source file is too large to read directly.
+
+In the examples below, `$SKILL_SCRIPTS` is wherever the scripts live: `skills/agent-session-resume/scripts` in this repo, or `<install dir>/agent-session-resume/scripts` for an installed skill.
 
 ### Find Candidate Sessions
 
 Use `session-candidates.py` to shortlist likely transcripts before opening transcript bodies.
 
 ```bash
-python3 scripts/session-candidates.py --platform codex --cwd "$PWD" --format tsv
-python3 scripts/session-candidates.py --platform claude-code --cwd "$PWD" --format tsv
+python3 "$SKILL_SCRIPTS/session-candidates.py" --platform codex --cwd "$PWD" --format tsv
+python3 "$SKILL_SCRIPTS/session-candidates.py" --platform claude-code --cwd "$PWD" --format tsv
 ```
 
 For Codex, the helper reads `session_index.jsonl` first and resolves candidate IDs to transcript files. For Claude Code, it derives the likely `~/.claude/projects/<project>` directory from the current cwd before falling back to broader project scans.
@@ -365,7 +367,20 @@ For Codex, the helper reads `session_index.jsonl` first and resolves candidate I
 Use `--topic` when the user gave a title or theme:
 
 ```bash
-python3 scripts/session-candidates.py --platform codex --cwd "$PWD" --topic "checkout retry"
+python3 "$SKILL_SCRIPTS/session-candidates.py" --platform codex --cwd "$PWD" --topic "checkout retry"
+```
+
+Use `--since` / `--until` to answer time-window asks such as "my Codex threads from the past week" without hand-rolling date enumeration. Both accept an ISO date or datetime (`2026-06-01`, `2026-06-01T12:00:00Z`) or a relative window (`7d`, `12h`, `30m`, `2w`):
+
+```bash
+python3 "$SKILL_SCRIPTS/session-candidates.py" --platform codex --since 7d --format tsv
+python3 "$SKILL_SCRIPTS/session-candidates.py" --platform claude-code --since 2026-06-01 --until 2026-06-08
+```
+
+`--cwd <path>` filters as well as ranks: only sessions whose recorded workspace matches the given path exactly, or as a parent/child directory, are kept. Omit `--cwd` to rank by the current directory without filtering. Filters compose, so "this repo, past week" is:
+
+```bash
+python3 "$SKILL_SCRIPTS/session-candidates.py" --platform codex --cwd "$PWD" --since 7d
 ```
 
 ### Create A Compact Evidence Digest
@@ -373,10 +388,26 @@ python3 scripts/session-candidates.py --platform codex --cwd "$PWD" --topic "che
 Use `session-digest.py` to produce a bounded orientation digest from transcript, export, handoff, or artifact files:
 
 ```bash
-python3 scripts/session-digest.py path/to/session.jsonl path/to/handoff.md
+python3 "$SKILL_SCRIPTS/session-digest.py" path/to/session.jsonl path/to/handoff.md
 ```
 
 The digest is an orientation aid, not a replacement for evidence review. After digesting, still inspect the relevant transcript slices, tool outputs, changed files, git state, and verification results before continuing work.
+
+#### Digest Caching
+
+`session-digest.py` caches each digest in a sidecar file named `<transcript>.digest.json` written next to the source file. The sidecar stores the file size, a SHA-256 of the digested bytes, and the last processed byte offset. On rerun:
+
+- unchanged file (size and hash match) - the sidecar is reused wholesale and nothing is re-read beyond the hash check;
+- append-only growth (the previously digested prefix is unchanged) - only the appended tail is processed and merged into the cached digest; this incremental behavior is the default for Codex and Claude Code JSONL transcripts;
+- prefix changed (rewritten, truncated, or compacted file) - the digest is recomputed from scratch.
+
+Flags:
+
+- `--sidecar-dir <dir>` writes sidecars into a separate directory instead of next to the transcript (useful for read-only stores).
+- `--no-sidecar` disables cache reads and writes entirely.
+- `--no-incremental` disables append-only tail processing; unchanged files still get whole-sidecar cache hits.
+
+If the transcript directory is not writable, the digest still prints and the sidecar is skipped with a notice on stderr. Cache notices (`cache hit`, `incremental update`, `cache invalidated`) go to stderr so stdout stays a clean digest.
 
 ## Benchmarking Improvements
 

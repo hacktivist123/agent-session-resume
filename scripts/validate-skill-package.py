@@ -16,6 +16,7 @@ OPENAI_YAML = SKILL_DIR / "agents" / "openai.yaml"
 REFERENCES = SKILL_DIR / "references"
 MARKETPLACE_JSON = ROOT / ".claude-plugin" / "marketplace.json"
 CLAUDE_PLUGIN_MANIFEST = ROOT / ".claude-plugin" / "plugin.json"
+SCRIPTS_DIR = SKILL_DIR / "scripts"
 REQUIRED_REFERENCES = {
     "claude-code.md": "Claude Code",
     "codex.md": "Codex",
@@ -23,6 +24,12 @@ REQUIRED_REFERENCES = {
     "antigravity.md": "Antigravity",
     "opencode.md": "OpenCode",
 }
+REQUIRED_SCRIPTS = (
+    "session-events.py",
+    "session-candidates.py",
+    "session-digest.py",
+    "skill-provenance.py",
+)
 
 
 def fail(message: str) -> None:
@@ -100,6 +107,15 @@ def validate_references() -> None:
             fail(f"SKILL.md does not link {filename}")
 
 
+def validate_scripts() -> None:
+    if not SCRIPTS_DIR.is_dir():
+        fail(f"missing directory: {SCRIPTS_DIR.relative_to(ROOT)}")
+    for filename in REQUIRED_SCRIPTS:
+        text = read_required(SCRIPTS_DIR / filename)
+        if not text.startswith("#!/usr/bin/env python3"):
+            fail(f"scripts/{filename} must start with a python3 shebang")
+
+
 def validate_openai_yaml() -> None:
     text = read_required(OPENAI_YAML)
     required_snippets = (
@@ -163,6 +179,7 @@ def main() -> None:
 
     validate_skill_md()
     validate_references()
+    validate_scripts()
     validate_openai_yaml()
     validate_claude_marketplace()
     validate_claude_plugin_manifest()
