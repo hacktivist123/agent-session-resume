@@ -338,7 +338,37 @@ def digest_file_cached(path: Path, sidecar_dir: Path | None, use_sidecar: bool, 
         if (
             incremental
             and platform in JSONL_PLATFORMS
-            and size > cached["offset"]
+def sha256_prefix(path: Path, length: int) -> str:
+    hasher = hashlib.sha256()
+    remaining = length
+    with path.open("rb") as handle:
+        while remaining > 0:
+            chunk = handle.read(min(1024 * 1024, remaining))
+            if not chunk:
+                break
+            hasher.update(chunk)
+            remaining -= len(chunk)
+    return hasher.hexdigest()
+
+
+def last_complete_newline_offset(path: Path, size: int) -> int:
+    # Based on @LakunleD's review: store offset after the last complete
+    # newline so a partial trailing JSONL line is reprocessed next run
+    # instead of being silently dropped.
+    if size == 0:
+        return 0
+    offset = 0
+    with path.open("rb") as handle:
+        while True:
+            chunk = handle.read(min(1024 * 1024, size - offset))
+            if not chunk:
+                break
+            idx = chunk.rfind(b"\n")
+            if idx != -1:
+                offset += idx + 1
+            else:
+                offset += len(chunk)
+    return offset
             and sha256_prefix(path, cached["offset"]) == cached["sha256"]
         ):
             notice(f"incremental update for {path} (processing bytes {cached['offset']}..{size})")
