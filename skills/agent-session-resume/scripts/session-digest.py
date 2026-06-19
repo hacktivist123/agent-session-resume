@@ -275,6 +275,23 @@ def sha256_prefix(path: Path, length: int) -> str:
     return hasher.hexdigest()
 
 
+def last_complete_newline_offset(path: Path, size: int) -> int:
+    if size == 0:
+        return 0
+    offset = 0
+    with path.open("rb") as handle:
+        while True:
+            chunk = handle.read(min(1024 * 1024, size - offset))
+            if not chunk:
+                break
+            idx = chunk.rfind(b"\n")
+            if idx != -1:
+                offset += idx + 1
+            else:
+                offset += len(chunk)
+    return offset
+
+
 def cache_sidecar_path(path: Path, sidecar_dir: Path | None) -> Path:
     name = path.name + CACHE_SUFFIX
     if sidecar_dir is not None:
@@ -304,12 +321,13 @@ def load_cache(path: Path, cache_path: Path) -> dict[str, Any] | None:
 
 def write_cache(path: Path, cache_path: Path, digest: dict[str, Any]) -> None:
     size = path.stat().st_size
+    offset = last_complete_newline_offset(path, size)
     record = {
         "cache_version": CACHE_VERSION,
         "source": str(path.resolve()),
         "size": size,
-        "sha256": sha256_prefix(path, size),
-        "offset": size,
+        "sha256": sha256_prefix(path, offset),
+        "offset": offset,
         "digest": digest,
     }
     try:
@@ -338,37 +356,6 @@ def digest_file_cached(path: Path, sidecar_dir: Path | None, use_sidecar: bool, 
         if (
             incremental
             and platform in JSONL_PLATFORMS
-def sha256_prefix(path: Path, length: int) -> str:
-    hasher = hashlib.sha256()
-    remaining = length
-    with path.open("rb") as handle:
-        while remaining > 0:
-            chunk = handle.read(min(1024 * 1024, remaining))
-            if not chunk:
-                break
-            hasher.update(chunk)
-            remaining -= len(chunk)
-    return hasher.hexdigest()
-
-
-def last_complete_newline_offset(path: Path, size: int) -> int:
-    # Based on @LakunleD's review: store offset after the last complete
-    # newline so a partial trailing JSONL line is reprocessed next run
-    # instead of being silently dropped.
-    if size == 0:
-        return 0
-    offset = 0
-    with path.open("rb") as handle:
-        while True:
-            chunk = handle.read(min(1024 * 1024, size - offset))
-            if not chunk:
-                break
-            idx = chunk.rfind(b"\n")
-            if idx != -1:
-                offset += idx + 1
-            else:
-                offset += len(chunk)
-    return offset
             and sha256_prefix(path, cached["offset"]) == cached["sha256"]
         ):
             notice(f"incremental update for {path} (processing bytes {cached['offset']}..{size})")
