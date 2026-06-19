@@ -93,3 +93,34 @@ The first benchmark set should stay small and representative:
 | `redacted-handoff` | Safety and redaction | The handoff validates and avoids leaking fake secrets or private values |
 
 Add new fixtures only when they cover a distinct failure mode. Prefer a small scenario with crisp expected output over a huge transcript that is hard to review.
+
+## Baseline measurements (2026-06-10)
+
+The token-usage-proxy area above previously had no recorded numbers. This baseline was produced with the self-contained harness in `scripts/benchmark-resume.py`, which measures the bytes that would enter the model context for each fixture source set under three reading strategies: `raw` (full file read), `projected` (message-only projection with bounded tool summaries), and `digest` (keyword/evidence lines plus first and last five messages).
+
+Command:
+
+```bash
+python3 scripts/benchmark-resume.py
+```
+
+(Add `--json` for machine-readable output.)
+
+| Fixture | Raw bytes | Projected bytes (% of raw) | Digest bytes (% of raw) |
+| --- | ---: | ---: | ---: |
+| antigravity-artifacts | 1017 | 1016 (99.9%) | 296 (29.1%) |
+| antigravity-local-store | 1417 | 1416 (99.9%) | 261 (18.4%) |
+| claude-code-jsonl | 1464 | 667 (45.6%) | 667 (45.6%) |
+| claude-noisy-jsonl | 1651 | 432 (26.2%) | 432 (26.2%) |
+| codex-compacted-handoff | 841 | 840 (99.9%) | 243 (28.9%) |
+| codex-noisy-jsonl | 1397 | 346 (24.8%) | 346 (24.8%) |
+| codex-wrong-newest | 922 | 116 (12.6%) | 116 (12.6%) |
+| cursor-agent-export | 1425 | 1424 (99.9%) | 504 (35.4%) |
+| large-transcript | 529 | 528 (99.8%) | 377 (71.3%) |
+| opencode-session-export | 897 | 896 (99.9%) | 387 (43.1%) |
+| redacted-handoff | 933 | 932 (99.9%) | 232 (24.9%) |
+| **Total** | 12493 | 8613 (68.9%) | 3861 (30.9%) |
+
+Token approximation: tokens ~= bytes / 4 (rough heuristic for English/code text). Totals: raw ~3123 tokens, projected ~2153 tokens, digest ~965 tokens.
+
+Interpretation: on JSONL transcript fixtures, projection alone removes 54-87% of the bytes a naive full read would load, because telemetry, reasoning payloads, signatures, and unbounded tool output dominate the raw stream; on markdown handoffs and exports projection is a no-op by design and the digest does the work, cutting context to roughly 18-45% of raw. Across the whole fixture set, the digest strategy loads about 31% of the raw bytes. These fixtures are intentionally tiny (around 0.5-1.7 KB each); real transcripts observed in the wild run 1-70 MB, where the raw-read denominator grows far faster than the bounded projection and digest outputs, so the ratios here understate the real-world reduction substantially.
