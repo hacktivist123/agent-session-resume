@@ -1,6 +1,6 @@
 # Cookbook
 
-This cookbook shows practical ways to use `agent-session-resume` with Claude Code, Codex, Cursor, Antigravity, and OpenCode.
+This cookbook shows practical ways to use `agent-session-resume` with Claude Code, Codex, Cursor, Antigravity, OpenCode, and GitHub Copilot.
 
 The skill's job is to make your prompt small. You name the prior agent/session source; the skill handles transcript discovery, full reading, task classification, and continuing from the true stopping point.
 
@@ -256,6 +256,37 @@ Use these as bounded discovery clues, not as the default transcript source. A sa
 5. Avoid giant global storage DBs unless the user explicitly asks and there is no better export.
 
 For Cursor Background Agents, normal chat history may not contain the conversation. Prefer the produced branch or PR, changed files, and an exported Background Agent conversation when available.
+
+## GitHub Copilot
+
+Use this when the prior work happened in GitHub Copilot Chat in VS Code (or VS Code Insiders). Prefer an exported chat when one is available:
+
+```text
+Use agent-session-resume.
+
+Continue from this exported GitHub Copilot Chat.
+```
+
+Copilot Chat can be exported to a single JSON file with the built-in `Chat: Export Chat...` command. Treat that export as the transcript source, then verify claims against current files, `git status`, commands, and tests before editing.
+
+If no export is present, Copilot Chat is stored per workspace under the VS Code user-data directory, not in the project tree:
+
+```text
+~/Library/Application Support/Code/User/workspaceStorage/<hash>/   # macOS
+~/.config/Code/User/workspaceStorage/<hash>/                       # Linux
+%APPDATA%\Code\User\workspaceStorage\<hash>\                       # Windows
+```
+
+Replace `Code` with `Code - Insiders` for VS Code Insiders. Inside each `<hash>` folder, `workspace.json` records the project the hash represents, `chatSessions/<session-id>.json` holds the chat transcripts, and `state.vscdb` holds chat metadata.
+
+A safe local traversal is:
+
+1. Check for an exported chat or handoff file in the workspace first.
+2. Map `workspaceStorage/*/workspace.json` back to the current `file://` project path before reading any chat file; one project can map to several hashes.
+3. Read the matching `chatSessions/*.json` in full, walking request/response turns for user prompts, assistant responses, referenced files, and applied edits.
+4. Treat `workspace.json` and `state.vscdb` as routing context, not as proof that work was completed.
+
+Inline-completion (ghost text) history is not recoverable here; only Copilot Chat and Edits sessions are. Classify task status from the chat transcript plus the current workspace.
 
 ## Cross-Agent Handoffs
 

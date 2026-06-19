@@ -84,6 +84,7 @@ Use the user's prompt to decide how far to go after the checkpoint:
 - Cursor: read `references/cursor.md`.
 - Antigravity: read `references/antigravity.md`.
 - OpenCode: read `references/opencode.md`.
+- GitHub Copilot: read `references/github-copilot.md`.
 
 ## Required Response Shape
 

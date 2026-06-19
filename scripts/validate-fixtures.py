@@ -12,7 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT / "tests" / "fixtures"
 MANIFEST = FIXTURES / "manifest.json"
-SUPPORTED_PLATFORMS = {"claude-code", "codex", "cursor", "antigravity", "opencode"}
+SUPPORTED_PLATFORMS = {"claude-code", "codex", "cursor", "antigravity", "opencode", "github-copilot"}
 REQUIRED_EXPECTED_SECTIONS = (
     "Brief context summary",
     "Task status breakdown",

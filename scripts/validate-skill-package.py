@@ -22,6 +22,7 @@ REQUIRED_REFERENCES = {
     "cursor.md": "Cursor",
     "antigravity.md": "Antigravity",
     "opencode.md": "OpenCode",
+    "github-copilot.md": "GitHub Copilot",
 }
 
 
