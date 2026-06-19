@@ -35,7 +35,14 @@ skills/
       cursor.md
       github-copilot.md
       opencode.md
+    scripts/
+      session-candidates.py
+      session-digest.py
+      session-events.py
+      skill-provenance.py
 ```
+
+The runtime helper scripts live inside the skill folder so they ship with every install (for example `~/.claude/skills/agent-session-resume/scripts/`). They are python3-stdlib-only and runnable from any working directory; see the [cookbook](docs/Cookbook.md) for usage, including session candidate time-window/cwd filters and digest sidecar caching. Repo-root `scripts/` holds the CI-only validators.
 
 ## Install
 
@@ -171,6 +178,9 @@ Run the package and fixture validators:
 python3 scripts/validate-skill-package.py
 python3 scripts/validate-fixtures.py
 python3 scripts/validate-trigger-matrix.py
+python3 scripts/validate-session-events.py
+python3 scripts/validate-session-digest.py
+python3 scripts/validate-session-candidates.py
 claude plugin validate .
 claude plugin validate .claude-plugin/plugin.json
 claude plugin validate .claude-plugin/marketplace.json

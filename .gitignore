@@ -1,2 +1,5 @@
 __pycache__/
 *.py[cod]
+
+# digest sidecars produced by session-digest.py
+*.digest.json

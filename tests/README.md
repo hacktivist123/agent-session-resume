@@ -8,12 +8,15 @@ Run structural validation:
 python3 scripts/validate-skill-package.py
 python3 scripts/validate-fixtures.py
 python3 scripts/validate-trigger-matrix.py
+python3 scripts/validate-session-events.py
+python3 scripts/validate-session-digest.py
+python3 scripts/validate-session-candidates.py
 claude plugin validate .
 claude plugin validate .claude-plugin/plugin.json
 claude plugin validate .claude-plugin/marketplace.json
 ```
 
-The package validator checks the installable skill shape and the optional Claude plugin wrapper that points at the same canonical skill folder. The fixture validator checks that every supported platform has a scenario, that each source and expected-output file exists, that expected outputs include the required resume sections, task classifications, and fixture evidence references, and that optional source/expected cues are present. The trigger matrix validator checks prompt coverage for should-trigger and should-not-trigger cases.
+The package validator checks the installable skill shape (including the packaged runtime scripts in `skills/agent-session-resume/scripts/`) and the optional Claude plugin wrapper that points at the same canonical skill folder. The session digest validator covers sidecar cache hits, append-only incremental updates, and prefix-change invalidation. The session candidates validator covers the `--since`/`--until` time-window and `--cwd` workspace filters. The fixture validator checks that every supported platform has a scenario, that each source and expected-output file exists, that expected outputs include the required resume sections, task classifications, and fixture evidence references, and that optional source/expected cues are present. The trigger matrix validator checks prompt coverage for should-trigger and should-not-trigger cases.
 
 For benchmark areas and issue/PR evaluation fields, see [`docs/Benchmarking.md`](../docs/Benchmarking.md).
 
