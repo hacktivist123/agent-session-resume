@@ -1,6 +1,6 @@
 {
   "name": "agent-session-resume",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Adds the agent-session-resume skill for reconstructing and continuing prior AI coding-agent sessions.",
   "author": {
     "name": "hacktivist123"
