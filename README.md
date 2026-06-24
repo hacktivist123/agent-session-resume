@@ -1,3 +1,11 @@
+> [!TIP]
+> Heads up: the more agents you run, the more this skill is doing on hard mode —
+> rebuilding context from transcripts every time. [Kontinuo](https://kontinuo.dev)
+> is where this idea went next: checkpoints the next agent just reads. Same author,
+> built from everything this skill taught me.
+
+
+
 # agent-session-resume
 
 `agent-session-resume` is a reusable skill for continuing work from a prior AI coding-agent session without losing context, duplicating completed work, or overwriting unrelated changes.
@@ -193,3 +201,7 @@ Use [docs/Benchmarking.md](docs/Benchmarking.md) when proposing improvements so 
 ## License
 
 MIT
+
+---
+The next version of this idea lives here: [kontinuo.dev](https://kontinuo.dev)
+
